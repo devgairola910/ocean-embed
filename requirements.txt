@@ -10,18 +10,24 @@ scipy>=1.10.0
 scikit-learn>=1.2.0
 einops>=0.7.0
 pyyaml>=6.0
+zarr>=2.16.0
+
+# Backend REST API
+fastapi>=0.110.0
+uvicorn>=0.28.0
+pydantic>=2.6.0
+pydantic-settings>=2.2.0
+sqlalchemy>=2.0.0
+httpx>=0.27.0
+apscheduler>=3.10.0
 
 # Visualization & Demo
 matplotlib>=3.7.0
 streamlit>=1.30.0
 plotly>=5.15.0
 
-# Optional / Ocean specific (when available in environment)
-# gsw>=3.6.0
-# argopy>=0.1.14
-# copernicusmarine>=1.0.0
-
 # Testing & Quality
 pytest>=7.0.0
+pytest-asyncio>=0.23.0
 black>=23.0.0
 ruff>=0.1.0

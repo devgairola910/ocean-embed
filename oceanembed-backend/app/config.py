@@ -1,3 +1,4 @@
+import os
 from functools import lru_cache
 from typing import List, Union
 from pydantic import field_validator
@@ -9,8 +10,8 @@ class Settings(BaseSettings):
     CORS_ORIGINS: Union[List[str], str] = "http://localhost:3000,http://localhost:8501,http://localhost:5173"
     API_V1_PREFIX: str = "/api/v1"
     MODEL_PATH: str = "models_store"
-    DATA_OUTPUT_PATH: str = "data/outputs"
-    DATABASE_URL: str = "sqlite:///./oceanembed.db"
+    DATA_OUTPUT_PATH: str = "/tmp/data/outputs" if os.environ.get("VERCEL") else "data/outputs"
+    DATABASE_URL: str = "sqlite:////tmp/oceanembed.db" if os.environ.get("VERCEL") else "sqlite:///./oceanembed.db"
     INGESTION_INTERVAL_HOURS: int = 24
     NORMALIZATION_STATS_PATH: str = "models_store/normalization_stats.json"
 
