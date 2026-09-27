@@ -149,35 +149,30 @@ class PhysicalOceanSynthesizer:
         wind_u += self.rng.normal(0.0, 0.3, size=(H, W))
         wind_v += self.rng.normal(0.0, 0.3, size=(H, W))
 
-        # 3. Compute 3D Subsurface Temperature Field (15 depths)
-        depth_temperature = np.zeros((D, H, W), dtype=np.float32)
-        thermocline_depth = np.zeros((H, W), dtype=np.float32)
+        # 3. Vectorized Subsurface Temperature Field (15 depths)
+        t_deep = 4.5
+        z_th = 60.0 + 20.0 * np.sin(np.radians(lats * 3.6)) + 10.0 * np.cos(np.radians(lons * 2.0))  # (H, W)
+        h_th = 35.0
 
-        for i in range(H):
-            for j in range(W):
-                if not ocean_mask[i, j]:
-                    continue
-                point_sst = float(sst[i, j])
-                point_lat = float(lats[i, j])
-                point_lon = float(lons[i, j])
+        depths_3d = self.depths[:, np.newaxis, np.newaxis]  # (D, 1, 1)
+        z_th_3d = z_th[np.newaxis, :, :]                    # (1, H, W)
+        sst_3d = sst[np.newaxis, :, :]                      # (1, H, W)
 
-                bg_prof = self._compute_background_profile(point_sst, point_lat, point_lon)
-                # Combine background profile with subsurface eddy perturbation
-                tot_prof = bg_prof + temp_subsurface_anom[:, i, j]
+        bg_prof = t_deep + (sst_3d - t_deep) / (1.0 + np.exp((depths_3d - z_th_3d) / h_th))  # (D, H, W)
+        depth_temperature = (bg_prof + temp_subsurface_anom).astype(np.float32)
 
-                # Enforce physical monotonicity: dT/dz <= 0
-                for d in range(1, D):
-                    if tot_prof[d] > tot_prof[d - 1]:
-                        tot_prof[d] = tot_prof[d - 1] - 0.01
+        # Enforce physical monotonicity across depths
+        for d in range(1, D):
+            inv_mask = depth_temperature[d] > depth_temperature[d - 1]
+            depth_temperature[d, inv_mask] = depth_temperature[d - 1, inv_mask] - 0.01
 
-                depth_temperature[:, i, j] = tot_prof
-
-                # Compute thermocline depth = depth where vertical gradient max(-dT/dz) occurs
-                dT = -(tot_prof[1:] - tot_prof[:-1])
-                dz = (self.depths[1:] - self.depths[:-1])
-                grad = dT / dz
-                max_grad_idx = int(np.argmax(grad))
-                thermocline_depth[i, j] = float(0.5 * (self.depths[max_grad_idx] + self.depths[max_grad_idx + 1]))
+        # Compute thermocline depth = depth where vertical gradient max(-dT/dz) occurs
+        dT = -(depth_temperature[1:] - depth_temperature[:-1])               # (D-1, H, W)
+        dz = (self.depths[1:] - self.depths[:-1])[:, np.newaxis, np.newaxis] # (D-1, 1, 1)
+        grad = dT / dz                                                       # (D-1, H, W)
+        max_grad_idx = np.argmax(grad, axis=0)                               # (H, W)
+        mid_depths = 0.5 * (self.depths[1:] + self.depths[:-1])
+        thermocline_depth = mid_depths[max_grad_idx].astype(np.float32)      # (H, W)
 
         # Stack 7 surface channels
         surface_fields = np.stack([sst, sss, ssh, u_curr, v_curr, wind_u, wind_v], axis=0).astype(np.float32)

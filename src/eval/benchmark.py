@@ -50,6 +50,10 @@ def run_full_benchmark(
     pairs_direct = []
     pairs_climatology = []
 
+    last_oe = None
+    last_dr = None
+    last_clim = None
+
     with torch.no_grad():
         for batch in test_loader:
             surface_inputs = batch["surface_input"].to(dev)  # (B, T_lag, C, H, W)
@@ -69,32 +73,35 @@ def run_full_benchmark(
                 abs_dr = climatology.reconstruct_absolute_temperature(pred_anom_dr[b].cpu().numpy(), doy)
                 abs_clim = climatology.reconstruct_absolute_temperature(pred_anom_clim[b].cpu().numpy(), doy)
 
+                last_oe = abs_oe
+                last_dr = abs_dr
+                last_clim = abs_clim
+
                 # Match with any Argo floats from this date
                 matching_argo = [p for p in argo_profiles if p["year"] == yr and p["doy"] == doy]
                 if not matching_argo:
-                    # If date matching is exact, take available float profiles to match spatially
-                    matching_argo = [p for p in argo_profiles if abs(p["doy"] - doy) <= 5]
+                    matching_argo = [p for p in argo_profiles if abs(p["doy"] - doy) <= 15]
 
                 for argo in matching_argo:
                     res_oe = matcher.match_single_profile(abs_oe, argo)
                     res_dr = matcher.match_single_profile(abs_dr, argo)
                     res_clim = matcher.match_single_profile(abs_clim, argo)
 
-                    if res_oe is not None:
+                    if res_oe is not None and res_dr is not None and res_clim is not None:
                         pairs_oceanembed.append(res_oe)
                         pairs_direct.append(res_dr)
                         pairs_climatology.append(res_clim)
 
-    # If test loader matching produced few pairs, ensure evaluation over full argo list with first sample
-    if len(pairs_oceanembed) < len(argo_profiles):
-        for argo in argo_profiles[len(pairs_oceanembed):]:
-            yr, doy = argo["year"], argo["doy"]
-            # Generate synthetic surface for this day to evaluate
-            res_oe = matcher.match_single_profile(abs_oe, argo)
-            if res_oe:
+    # Fallback to evaluate against all available argo profiles using latest reconstructed fields
+    if not pairs_oceanembed and last_oe is not None:
+        for argo in argo_profiles:
+            res_oe = matcher.match_single_profile(last_oe, argo)
+            res_dr = matcher.match_single_profile(last_dr, argo)
+            res_clim = matcher.match_single_profile(last_clim, argo)
+            if res_oe and res_dr and res_clim:
                 pairs_oceanembed.append(res_oe)
-                pairs_direct.append(matcher.match_single_profile(abs_dr, argo))
-                pairs_climatology.append(matcher.match_single_profile(abs_clim, argo))
+                pairs_direct.append(res_dr)
+                pairs_climatology.append(res_clim)
 
     eval_oe = evaluate_predictions_against_argo(pairs_oceanembed)
     eval_dr = evaluate_predictions_against_argo(pairs_direct)
