@@ -7,12 +7,15 @@ Supports:
 - Independent in-situ Argo float trajectories
 - 2D Vertical transects (Depth vs Longitude / Latitude)
 - Exact JSON interface export contract conforming to design.md §7.3
+- Live connection to OceanEmbed FastAPI Backend (/api/v1)
 """
 
 from typing import Dict, List, Optional, Tuple, Union
 import os
 import sys
 import json
+import urllib.request
+import urllib.parse
 
 # Ensure project root is in sys.path
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -26,28 +29,96 @@ from src.data.synthetic import PhysicalOceanSynthesizer
 
 
 DEMO_SEASONS = {
-    "2022-07-15 (Southwest Monsoon)": {"year": 2022, "doy": 196, "desc": "Strong SW monsoonal winds, coastal upwelling off Somalia & SW India, shallow thermocline."},
-    "2022-05-18 (Pre-Monsoon Cyclone Season)": {"year": 2022, "doy": 138, "desc": "High SST warm pool in Bay of Bengal, high Ocean Heat Content, intense eddy activity."},
-    "2022-11-10 (Post-Monsoon Transition)": {"year": 2022, "doy": 314, "desc": "Transition to NE winds, freshwater river plume stratification in northern BoB."},
-    "2022-01-20 (Northeast Monsoon)": {"year": 2022, "doy": 20, "desc": "Cooling in northern Arabian Sea, convective mixing, deeper mixed layer."}
+    "2022-07-15 (Southwest Monsoon)": {"year": 2022, "doy": 196, "date_str": "2024-07-15", "desc": "Strong SW monsoonal winds, coastal upwelling off Somalia & SW India, shallow thermocline."},
+    "2022-05-18 (Pre-Monsoon Cyclone Season)": {"year": 2022, "doy": 138, "date_str": "2024-05-18", "desc": "High SST warm pool in Bay of Bengal, high Ocean Heat Content, intense eddy activity."},
+    "2022-11-10 (Post-Monsoon Transition)": {"year": 2022, "doy": 314, "date_str": "2024-11-10", "desc": "Transition to NE winds, freshwater river plume stratification in northern BoB."},
+    "2022-01-20 (Northeast Monsoon)": {"year": 2022, "doy": 20, "date_str": "2024-01-20", "desc": "Cooling in northern Arabian Sea, convective mixing, deeper mixed layer."}
 }
+
+BACKEND_BASE_URL = os.getenv("BACKEND_API_URL", "http://localhost:8000")
+
+
+def check_backend_health() -> Tuple[bool, str, str]:
+    """Check if FastAPI backend service is reachable."""
+    try:
+        url = f"{BACKEND_BASE_URL}/health"
+        req = urllib.request.Request(url, headers={"User-Agent": "OceanEmbed-Streamlit/1.0"})
+        with urllib.request.urlopen(req, timeout=1.5) as resp:
+            if resp.status == 200:
+                meta_url = f"{BACKEND_BASE_URL}/api/v1/metadata"
+                meta_req = urllib.request.Request(meta_url, headers={"User-Agent": "OceanEmbed-Streamlit/1.0"})
+                with urllib.request.urlopen(meta_req, timeout=1.5) as meta_resp:
+                    meta_data = json.loads(meta_resp.read().decode())
+                    mode = meta_data.get("mode", "mock")
+                    return True, "online", mode
+                return True, "online", "mock"
+    except Exception:
+        pass
+    return False, "offline", "N/A"
+
+
+def fetch_backend_predict(lat: float, lon: float, date_str: str) -> Optional[Dict]:
+    """Fetch 15-point vertical profile prediction from FastAPI backend."""
+    try:
+        params = urllib.parse.urlencode({"lat": lat, "lon": lon, "date": date_str})
+        url = f"{BACKEND_BASE_URL}/api/v1/predict?{params}"
+        req = urllib.request.Request(url, headers={"User-Agent": "OceanEmbed-Streamlit/1.0"})
+        with urllib.request.urlopen(req, timeout=2.5) as resp:
+            if resp.status == 200:
+                return json.loads(resp.read().decode())
+    except Exception:
+        pass
+    return None
+
+
+def fetch_backend_products(lat: float, lon: float, date_str: str) -> Optional[Dict]:
+    """Fetch OHC, MHW, and Cyclone Risk products from FastAPI backend."""
+    try:
+        params = urllib.parse.urlencode({"lat": lat, "lon": lon, "date": date_str})
+        ohc_url = f"{BACKEND_BASE_URL}/api/v1/products/ohc?{params}"
+        mhw_url = f"{BACKEND_BASE_URL}/api/v1/products/marine-heatwave?{params}"
+        risk_url = f"{BACKEND_BASE_URL}/api/v1/products/cyclone-risk?{params}"
+
+        with urllib.request.urlopen(urllib.request.Request(ohc_url), timeout=2.0) as r:
+            ohc_data = json.loads(r.read().decode())
+        with urllib.request.urlopen(urllib.request.Request(mhw_url), timeout=2.0) as r:
+            mhw_data = json.loads(r.read().decode())
+        with urllib.request.urlopen(urllib.request.Request(risk_url), timeout=2.0) as r:
+            risk_data = json.loads(r.read().decode())
+
+        return {"ohc": ohc_data, "mhw": mhw_data, "risk": risk_data}
+    except Exception:
+        pass
+    return None
+
+
+def fetch_backend_argo_profiles(lat: float, lon: float, date_str: str, radius_km: float = 100.0) -> Optional[List[Dict]]:
+    """Fetch DB-backed Argo float profiles near location from FastAPI backend."""
+    try:
+        params = urllib.parse.urlencode({"lat": lat, "lon": lon, "date": date_str, "radius_km": radius_km})
+        url = f"{BACKEND_BASE_URL}/api/v1/argo/profiles?{params}"
+        req = urllib.request.Request(url, headers={"User-Agent": "OceanEmbed-Streamlit/1.0"})
+        with urllib.request.urlopen(req, timeout=2.5) as resp:
+            if resp.status == 200:
+                data = json.loads(resp.read().decode())
+                return data.get("profiles", [])
+    except Exception:
+        pass
+    return None
 
 
 class DemoDataProvider:
     """Provides high-fidelity ocean data volumes for zero-latency interactive frontend exploration."""
 
     def __init__(self, grid: Optional[OceanGrid] = None, seed: int = 42) -> None:
-        """Initialize provider with NIO coordinate grid."""
         self.grid = grid or OceanGrid()
         self.synth = PhysicalOceanSynthesizer(self.grid, seed=seed)
         self.depths = np.array(self.grid.depth_levels, dtype=np.float32)
 
     def generate_season_dataset(self, year: int = 2022, doy: int = 196) -> Dict:
-        """Generate comprehensive 2D & 3D ocean state for a given calendar date."""
         surf_raw, glorys_3d, glorys_thermo = self.synth.generate_day(year, doy, add_eddy_field=True)
         ocean_mask = self.grid.land_mask
 
-        # 1. Climatological Background (for anomaly calculations)
         clim_3d = np.zeros_like(glorys_3d)
         for d in range(self.grid.D):
             z = self.depths[d]
@@ -56,7 +127,6 @@ class DemoDataProvider:
             clim_3d[d] = t_deep + (28.5 - t_deep) / (1.0 + np.exp((z - z_th_mean) / 35.0))
         clim_3d[:, ~ocean_mask] = 0.0
 
-        # 2. OceanEmbed AI Prediction (High accuracy, physics-constrained)
         rng = np.random.default_rng(year + doy)
         noise_oe = rng.normal(0.0, 0.22, size=glorys_3d.shape).astype(np.float32)
         oe_3d = glorys_3d + noise_oe
@@ -69,7 +139,6 @@ class DemoDataProvider:
         oe_thermo = np.clip(oe_thermo, 30.0, 140.0)
         oe_thermo[~ocean_mask] = 0.0
 
-        # 3. Direct Regression Baseline (No pretraining - higher error, unphysical inversions)
         noise_dr = rng.normal(0.0, 0.75, size=glorys_3d.shape).astype(np.float32)
         dr_3d = glorys_3d + noise_dr
         dr_3d[:, ~ocean_mask] = 0.0
@@ -77,20 +146,15 @@ class DemoDataProvider:
         dr_thermo = np.clip(dr_thermo, 20.0, 160.0)
         dr_thermo[~ocean_mask] = 0.0
 
-        # 4. Marine Heatwave (MHW) Index & Ocean Heat Content (OHC)
-        # OHC upper 100m (kJ/cm^2) = integral(rho * Cp * (T - 26)) for T > 26C
-        t_upper = np.clip(glorys_3d[:7] - 26.0, 0.0, None)  # depths up to 100m
-        ohc_map = np.sum(t_upper, axis=0) * 1.8  # approximate scale in kJ/cm^2
+        t_upper = np.clip(glorys_3d[:7] - 26.0, 0.0, None)
+        ohc_map = np.sum(t_upper, axis=0) * 1.8
         ohc_map[~ocean_mask] = 0.0
 
-        # MHW Subsurface Anomaly at 100m (°C anomaly)
         mhw_anom_100m = (glorys_3d[6] - clim_3d[6]).astype(np.float32)
         mhw_anom_100m[~ocean_mask] = 0.0
 
-        # 5. Independent Argo Float Profiles
         argo_profiles = self.synth.generate_argo_profiles(year, doy, num_floats=20)
 
-        # 6. Benchmark Summaries
         benchmarks = [
             {
                 "Model": "Climatology Baseline (Naive)",
@@ -98,7 +162,7 @@ class DemoDataProvider:
                 "Upper 500m RMSE (°C)": 1.482,
                 "Mean Bias (°C)": -0.082,
                 "Physical Validity (%)": 100.0,
-                "Samples": len(argo_profiles)
+                "Samples": len(argo_profiles),
             },
             {
                 "Model": "Direct CNN Regression (No Pretrain)",
@@ -106,7 +170,7 @@ class DemoDataProvider:
                 "Upper 500m RMSE (°C)": 0.941,
                 "Mean Bias (°C)": +0.065,
                 "Physical Validity (%)": 89.2,
-                "Samples": len(argo_profiles)
+                "Samples": len(argo_profiles),
             },
             {
                 "Model": "OceanEmbed (ViT-MAE + Depth Decoder + Physics)",
@@ -114,11 +178,10 @@ class DemoDataProvider:
                 "Upper 500m RMSE (°C)": 0.492,
                 "Mean Bias (°C)": +0.008,
                 "Physical Validity (%)": 100.0,
-                "Samples": len(argo_profiles)
-            }
+                "Samples": len(argo_profiles),
+            },
         ]
 
-        # Depth-wise skill curve
         depth_metrics = []
         for d_idx, d_m in enumerate(self.depths):
             corr = float(np.clip(0.94 - (d_m / 1400.0) * 0.28, 0.68, 0.96))
@@ -129,7 +192,7 @@ class DemoDataProvider:
                 "correlation": round(corr, 3),
                 "rmse_degC": round(rmse, 3),
                 "bias_degC": round(bias, 3),
-                "sample_count": len(argo_profiles)
+                "sample_count": len(argo_profiles),
             })
 
         return {
@@ -151,7 +214,7 @@ class DemoDataProvider:
             "mhw_anom_100m": mhw_anom_100m,
             "argo_profiles": argo_profiles,
             "benchmark_summary": benchmarks,
-            "depth_metrics": depth_metrics
+            "depth_metrics": depth_metrics,
         }
 
 
@@ -165,25 +228,8 @@ def format_export_json_contract(
     thermocline_depth: float,
     correlation: float,
     rmse: float,
-    bias: float
+    bias: float,
 ) -> Dict:
-    """Format single profile output strictly conforming to design.md §7.3 interface contract.
-
-    Args:
-        date_str: Date string (YYYY-MM-DD)
-        lat: Latitude
-        lon: Longitude
-        pred_profile: 15-float array of temperature anomalies (°C)
-        glorys_profile: 15-float array of GLORYS temperature (°C)
-        argo_profile: Optional 15-float array of in-situ Argo observations
-        thermocline_depth: Thermocline depth in meters
-        correlation: Pearson correlation
-        rmse: Profile RMSE
-        bias: Profile mean bias
-
-    Returns:
-        JSON-compliant dictionary
-    """
     return {
         "date": date_str,
         "lat": round(float(lat), 2),
@@ -195,6 +241,6 @@ def format_export_json_contract(
         "skill": {
             "correlation": round(float(correlation), 3),
             "rmse": round(float(rmse), 3),
-            "bias": round(float(bias), 3)
-        }
+            "bias": round(float(bias), 3),
+        },
     }

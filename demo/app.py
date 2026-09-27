@@ -19,7 +19,15 @@ import pandas as pd
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
-from demo.cached_data import DemoDataProvider, DEMO_SEASONS, format_export_json_contract
+from demo.cached_data import (
+    DemoDataProvider,
+    DEMO_SEASONS,
+    format_export_json_contract,
+    check_backend_health,
+    fetch_backend_predict,
+    fetch_backend_products,
+    fetch_backend_argo_profiles,
+)
 from src.data.grid import OceanGrid
 
 # Page configuration
@@ -60,9 +68,6 @@ st.markdown("""
     .status-badge {
         display: inline-flex;
         align-items: center;
-        background: rgba(16, 185, 129, 0.15);
-        border: 1px solid rgba(16, 185, 129, 0.3);
-        color: #34D399;
         padding: 5px 14px;
         border-radius: 20px;
         font-size: 0.85rem;
@@ -72,11 +77,9 @@ st.markdown("""
     .status-badge-pulse {
         width: 8px;
         height: 8px;
-        background-color: #10B981;
         border-radius: 50%;
         margin-right: 8px;
         display: inline-block;
-        box-shadow: 0 0 8px #10B981;
     }
     
     .glass-card {
@@ -135,23 +138,33 @@ def get_data_provider():
 
 
 provider = get_data_provider()
+is_backend_live, backend_status, backend_mode = check_backend_health()
 
 # ----------------------------------------------------
 # Top Navigation & Header
 # ----------------------------------------------------
-col_title, col_status = st.columns([3.2, 1.2])
+col_title, col_status = st.columns([3.2, 1.4])
 with col_title:
     st.markdown('<div class="brand-title">🌊 OceanEmbed</div>', unsafe_allow_html=True)
     st.markdown('<div class="brand-subtitle"><strong>SIH26066 — Ministry of Earth Sciences (MoES)</strong> · <em>Satellite-to-Subsurface Ocean Thermal Reconstruction (0–1000 m)</em></div>', unsafe_allow_html=True)
 
 with col_status:
-    st.markdown("""
-    <div style="text-align: right; padding-top: 8px;">
-        <span class="status-badge">
-            <span class="status-badge-pulse"></span> ViT-MAE Inference Engine Ready
-        </span>
-    </div>
-    """, unsafe_allow_html=True)
+    if is_backend_live:
+        st.markdown(f"""
+        <div style="text-align: right; padding-top: 8px;">
+            <span class="status-badge" style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); color: #34D399;">
+                <span class="status-badge-pulse" style="background-color: #10B981; box-shadow: 0 0 8px #10B981;"></span> 🟢 FastAPI Connected (MODE: {backend_mode})
+            </span>
+        </div>
+        """, unsafe_allow_html=True)
+    else:
+        st.markdown("""
+        <div style="text-align: right; padding-top: 8px;">
+            <span class="status-badge" style="background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.3); color: #FBBF24;">
+                <span class="status-badge-pulse" style="background-color: #F59E0B; box-shadow: 0 0 8px #F59E0B;"></span> 🟡 Standalone Mode (API Offline)
+            </span>
+        </div>
+        """, unsafe_allow_html=True)
 
 st.markdown("---")
 
@@ -254,19 +267,66 @@ sla_val = float(surf_raw[2, lat_idx, lon_idx])
 ohc_val = float(ohc_map[lat_idx, lon_idx])
 mhw_val = float(mhw_map[lat_idx, lon_idx])
 
+nearest_argo = None
+min_dist = float("inf")
+
+# ----------------------------------------------------
+# Dynamic FastAPI Backend Data Integration
+# ----------------------------------------------------
+if is_backend_live:
+    date_str = season_info["date_str"]
+    api_predict = fetch_backend_predict(actual_lat, actual_lon, date_str)
+    api_products = fetch_backend_products(actual_lat, actual_lon, date_str)
+    api_argo = fetch_backend_argo_profiles(actual_lat, actual_lon, date_str, radius_km=150.0)
+
+    if api_predict and "profile" in api_predict:
+        backend_prof = np.array([p["temperature_c"] for p in api_predict["profile"]], dtype=np.float32)
+        backend_depths = np.array([p["depth_m"] for p in api_predict["profile"]], dtype=np.float32)
+        if len(backend_prof) == len(depth_levels):
+            prof_oe = backend_prof
+        else:
+            prof_oe = np.interp(depth_levels, backend_depths, backend_prof)
+
+        surf = api_predict.get("surface_inputs_used", {})
+        if "sst" in surf and surf["sst"] is not None:
+            sst_val = float(surf["sst"])
+        if "sss" in surf and surf["sss"] is not None:
+            sss_val = float(surf["sss"])
+        if "sla" in surf and surf["sla"] is not None:
+            sla_val = float(surf["sla"])
+
+    if api_products:
+        if "ohc" in api_products and "ohc_value" in api_products["ohc"]:
+            ohc_val = float(api_products["ohc"]["ohc_value"])
+
+    if api_argo and len(api_argo) > 0:
+        best_argo = api_argo[0]
+        argo_depths = [p["depth_m"] for p in best_argo["profile"]]
+        argo_temps = [p["temperature_c"] for p in best_argo["profile"]]
+        nearest_argo = {
+            "float_id": best_argo.get("float_id", "ARGO_LIVE"),
+            "lat": best_argo.get("lat", actual_lat),
+            "lon": best_argo.get("lon", actual_lon),
+            "depths": argo_depths,
+            "temperature": argo_temps
+        }
+        min_dist = float(best_argo.get("distance_km", 10.0)) / 111.0
+
 # Profile stats
 prof_corr = float(np.corrcoef(prof_oe, prof_glorys)[0, 1])
 prof_rmse = float(np.sqrt(np.mean((prof_oe - prof_glorys)**2)))
 prof_bias = float(np.mean(prof_oe - prof_glorys))
 
-# Find nearest Argo profile
-nearest_argo = None
-min_dist = float("inf")
-for argo in argo_profiles:
-    d = np.sqrt((argo["lat"] - actual_lat)**2 + (argo["lon"] - actual_lon)**2)
-    if d < min_dist:
-        min_dist = d
-        nearest_argo = argo
+# Find nearest Argo profile if not supplied by API
+if nearest_argo is None:
+    min_dist = float("inf")
+    for argo in argo_profiles:
+        d = np.sqrt((argo["lat"] - actual_lat)**2 + (argo["lon"] - actual_lon)**2)
+        if d < min_dist:
+            min_dist = d
+            nearest_argo = argo
+
+
 
 # ----------------------------------------------------
 # Main Application Tabs

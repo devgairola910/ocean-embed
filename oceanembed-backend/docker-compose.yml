@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - MODE=mock
+      - CORS_ORIGINS=*
+      - API_V1_PREFIX=/api/v1
+      - MODEL_PATH=models_store
+      - DATA_OUTPUT_PATH=data/outputs
+      - DATABASE_URL=sqlite:///./oceanembed.db
+    volumes:
+      - ./data:/app/data
+      - ./models_store:/app/models_store
+    command: sh -c "python scripts/seed_mock_argo.py && uvicorn app.main:app --host 0.0.0.0 --port 8000"

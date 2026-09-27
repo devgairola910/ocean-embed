@@ -1,0 +1,14 @@
+fastapi
+uvicorn[standard]
+pydantic
+pydantic-settings
+pytest
+httpx
+numpy
+sqlalchemy
+xarray
+netCDF4
+zarr
+onnxruntime
+apscheduler
+scipy

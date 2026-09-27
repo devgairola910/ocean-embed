@@ -1,0 +1,1820 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "OceanEmbed API",
+    "description": "Subsurface Ocean Temperature Reconstruction Backend (SIH26066)",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "tags": [
+          "Health Check"
+        ],
+        "summary": "Health Check",
+        "operationId": "health_check_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ready": {
+      "get": {
+        "tags": [
+          "Health Check"
+        ],
+        "summary": "Readiness Check",
+        "operationId": "readiness_check_ready_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/metadata": {
+      "get": {
+        "tags": [
+          "Metadata"
+        ],
+        "summary": "Get domain & model metadata",
+        "operationId": "get_metadata_api_v1_metadata_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MetadataResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/predict": {
+      "get": {
+        "tags": [
+          "Prediction"
+        ],
+        "summary": "Predict vertical temperature profile",
+        "operationId": "predict_api_v1_predict_get",
+        "parameters": [
+          {
+            "name": "lat",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "number",
+              "description": "Latitude in \u00b0N (0 to 25)",
+              "examples": [
+                12.5
+              ],
+              "title": "Lat"
+            },
+            "description": "Latitude in \u00b0N (0 to 25)"
+          },
+          {
+            "name": "lon",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "number",
+              "description": "Longitude in \u00b0E (45 to 100)",
+              "examples": [
+                65.0
+              ],
+              "title": "Lon"
+            },
+            "description": "Longitude in \u00b0E (45 to 100)"
+          },
+          {
+            "name": "date",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Target date (YYYY-MM-DD)",
+              "examples": [
+                "2025-05-15"
+              ],
+              "title": "Date"
+            },
+            "description": "Target date (YYYY-MM-DD)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PredictResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/grid": {
+      "get": {
+        "tags": [
+          "Grid"
+        ],
+        "summary": "Get 2D temperature grid slice",
+        "operationId": "get_grid_api_v1_grid_get",
+        "parameters": [
+          {
+            "name": "date",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Target date (YYYY-MM-DD)",
+              "examples": [
+                "2025-05-15"
+              ],
+              "title": "Date"
+            },
+            "description": "Target date (YYYY-MM-DD)"
+          },
+          {
+            "name": "depth",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "number",
+              "description": "Depth level in meters",
+              "examples": [
+                0.0
+              ],
+              "title": "Depth"
+            },
+            "description": "Depth level in meters"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GridResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/transect": {
+      "get": {
+        "tags": [
+          "Transect"
+        ],
+        "summary": "Sample ocean transect profile along a line",
+        "operationId": "get_transect_api_v1_transect_get",
+        "parameters": [
+          {
+            "name": "lat1",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "number",
+              "description": "Start latitude \u00b0N",
+              "examples": [
+                10.0
+              ],
+              "title": "Lat1"
+            },
+            "description": "Start latitude \u00b0N"
+          },
+          {
+            "name": "lon1",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "number",
+              "description": "Start longitude \u00b0E",
+              "examples": [
+                65.0
+              ],
+              "title": "Lon1"
+            },
+            "description": "Start longitude \u00b0E"
+          },
+          {
+            "name": "lat2",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "number",
+              "description": "End latitude \u00b0N",
+              "examples": [
+                15.0
+              ],
+              "title": "Lat2"
+            },
+            "description": "End latitude \u00b0N"
+          },
+          {
+            "name": "lon2",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "number",
+              "description": "End longitude \u00b0E",
+              "examples": [
+                75.0
+              ],
+              "title": "Lon2"
+            },
+            "description": "End longitude \u00b0E"
+          },
+          {
+            "name": "date",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Target date (YYYY-MM-DD)",
+              "examples": [
+                "2025-05-15"
+              ],
+              "title": "Date"
+            },
+            "description": "Target date (YYYY-MM-DD)"
+          },
+          {
+            "name": "n_points",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 200,
+              "minimum": 2,
+              "description": "Number of sampling points",
+              "examples": [
+                50
+              ],
+              "default": 50,
+              "title": "N Points"
+            },
+            "description": "Number of sampling points"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransectResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/argo/validation": {
+      "get": {
+        "tags": [
+          "Argo Validation & Profiles"
+        ],
+        "summary": "Get Argo matchup validation statistics",
+        "operationId": "get_argo_validation_api_v1_argo_validation_get",
+        "parameters": [
+          {
+            "name": "date_from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "description": "Start date (YYYY-MM-DD)",
+              "examples": [
+                "2024-01-01"
+              ],
+              "default": "2024-01-01",
+              "title": "Date From"
+            },
+            "description": "Start date (YYYY-MM-DD)"
+          },
+          {
+            "name": "date_to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "description": "End date (YYYY-MM-DD)",
+              "examples": [
+                "2026-06-30"
+              ],
+              "default": "2026-06-30",
+              "title": "Date To"
+            },
+            "description": "End date (YYYY-MM-DD)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArgoValidationResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/argo/profiles": {
+      "get": {
+        "tags": [
+          "Argo Validation & Profiles"
+        ],
+        "summary": "Get nearby Argo float profiles",
+        "operationId": "get_argo_profiles_api_v1_argo_profiles_get",
+        "parameters": [
+          {
+            "name": "lat",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "number",
+              "description": "Center latitude \u00b0N",
+              "examples": [
+                12.5
+              ],
+              "title": "Lat"
+            },
+            "description": "Center latitude \u00b0N"
+          },
+          {
+            "name": "lon",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "number",
+              "description": "Center longitude \u00b0E",
+              "examples": [
+                65.0
+              ],
+              "title": "Lon"
+            },
+            "description": "Center longitude \u00b0E"
+          },
+          {
+            "name": "radius_km",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "maximum": 1000.0,
+              "minimum": 1.0,
+              "description": "Radius in km",
+              "examples": [
+                100.0
+              ],
+              "default": 100.0,
+              "title": "Radius Km"
+            },
+            "description": "Radius in km"
+          },
+          {
+            "name": "date",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Target date (YYYY-MM-DD)",
+              "examples": [
+                "2025-05-15"
+              ],
+              "title": "Date"
+            },
+            "description": "Target date (YYYY-MM-DD)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArgoProfilesResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/products/ohc": {
+      "get": {
+        "tags": [
+          "Derived Ocean Products"
+        ],
+        "summary": "Get Ocean Heat Content (OHC)",
+        "operationId": "get_ohc_api_v1_products_ohc_get",
+        "parameters": [
+          {
+            "name": "lat",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "number",
+              "description": "Latitude \u00b0N",
+              "examples": [
+                12.5
+              ],
+              "title": "Lat"
+            },
+            "description": "Latitude \u00b0N"
+          },
+          {
+            "name": "lon",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "number",
+              "description": "Longitude \u00b0E",
+              "examples": [
+                65.0
+              ],
+              "title": "Lon"
+            },
+            "description": "Longitude \u00b0E"
+          },
+          {
+            "name": "date",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Target date (YYYY-MM-DD)",
+              "examples": [
+                "2025-05-15"
+              ],
+              "title": "Date"
+            },
+            "description": "Target date (YYYY-MM-DD)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OHCProductResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/products/marine-heatwave": {
+      "get": {
+        "tags": [
+          "Derived Ocean Products"
+        ],
+        "summary": "Get Marine Heatwave (MHW) assessment",
+        "operationId": "get_marine_heatwave_api_v1_products_marine_heatwave_get",
+        "parameters": [
+          {
+            "name": "lat",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "number",
+              "description": "Latitude \u00b0N",
+              "examples": [
+                12.5
+              ],
+              "title": "Lat"
+            },
+            "description": "Latitude \u00b0N"
+          },
+          {
+            "name": "lon",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "number",
+              "description": "Longitude \u00b0E",
+              "examples": [
+                65.0
+              ],
+              "title": "Lon"
+            },
+            "description": "Longitude \u00b0E"
+          },
+          {
+            "name": "date",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Target date (YYYY-MM-DD)",
+              "examples": [
+                "2025-05-15"
+              ],
+              "title": "Date"
+            },
+            "description": "Target date (YYYY-MM-DD)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MarineHeatwaveResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/products/cyclone-risk": {
+      "get": {
+        "tags": [
+          "Derived Ocean Products"
+        ],
+        "summary": "Get Tropical Cyclone Heat Potential & Risk",
+        "operationId": "get_cyclone_risk_api_v1_products_cyclone_risk_get",
+        "parameters": [
+          {
+            "name": "lat",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "number",
+              "description": "Latitude \u00b0N",
+              "examples": [
+                12.5
+              ],
+              "title": "Lat"
+            },
+            "description": "Latitude \u00b0N"
+          },
+          {
+            "name": "lon",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "number",
+              "description": "Longitude \u00b0E",
+              "examples": [
+                65.0
+              ],
+              "title": "Lon"
+            },
+            "description": "Longitude \u00b0E"
+          },
+          {
+            "name": "date",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Target date (YYYY-MM-DD)",
+              "examples": [
+                "2025-05-15"
+              ],
+              "title": "Date"
+            },
+            "description": "Target date (YYYY-MM-DD)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CycloneRiskResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/ingest/trigger": {
+      "post": {
+        "tags": [
+          "Admin & Pipeline Control"
+        ],
+        "summary": "Trigger ingestion pipeline job",
+        "operationId": "trigger_ingestion_api_v1_admin_ingest_trigger_post",
+        "parameters": [
+          {
+            "name": "date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "description": "Target date YYYY-MM-DD",
+              "examples": [
+                "2025-05-15"
+              ],
+              "default": "2025-05-15",
+              "title": "Date"
+            },
+            "description": "Target date YYYY-MM-DD"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IngestTriggerResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/ingest/status/{job_id}": {
+      "get": {
+        "tags": [
+          "Admin & Pipeline Control"
+        ],
+        "summary": "Get ingestion job status",
+        "operationId": "get_ingestion_status_api_v1_admin_ingest_status__job_id__get",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IngestStatusResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ArgoFloatProfile": {
+        "properties": {
+          "float_id": {
+            "type": "string",
+            "title": "Float Id",
+            "examples": [
+              "ARGO_2901482"
+            ]
+          },
+          "lat": {
+            "type": "number",
+            "title": "Lat",
+            "examples": [
+              12.6
+            ]
+          },
+          "lon": {
+            "type": "number",
+            "title": "Lon",
+            "examples": [
+              80.1
+            ]
+          },
+          "date": {
+            "type": "string",
+            "title": "Date",
+            "examples": [
+              "2025-05-14"
+            ]
+          },
+          "distance_km": {
+            "type": "number",
+            "title": "Distance Km",
+            "examples": [
+              15.2
+            ]
+          },
+          "profile": {
+            "items": {
+              "$ref": "#/components/schemas/ProfilePoint"
+            },
+            "type": "array",
+            "title": "Profile"
+          }
+        },
+        "type": "object",
+        "required": [
+          "float_id",
+          "lat",
+          "lon",
+          "date",
+          "distance_km",
+          "profile"
+        ],
+        "title": "ArgoFloatProfile"
+      },
+      "ArgoProfilesResponse": {
+        "properties": {
+          "requested_location": {
+            "$ref": "#/components/schemas/LocationPoint"
+          },
+          "radius_km": {
+            "type": "number",
+            "title": "Radius Km",
+            "examples": [
+              100.0
+            ]
+          },
+          "date": {
+            "type": "string",
+            "title": "Date",
+            "examples": [
+              "2025-05-15"
+            ]
+          },
+          "profiles": {
+            "items": {
+              "$ref": "#/components/schemas/ArgoFloatProfile"
+            },
+            "type": "array",
+            "title": "Profiles"
+          },
+          "mode": {
+            "type": "string",
+            "title": "Mode",
+            "default": "mock",
+            "examples": [
+              "mock"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "requested_location",
+          "radius_km",
+          "date",
+          "profiles"
+        ],
+        "title": "ArgoProfilesResponse"
+      },
+      "ArgoValidationResponse": {
+        "properties": {
+          "date_from": {
+            "type": "string",
+            "title": "Date From",
+            "examples": [
+              "2024-01-01"
+            ]
+          },
+          "date_to": {
+            "type": "string",
+            "title": "Date To",
+            "examples": [
+              "2026-06-30"
+            ]
+          },
+          "n_matchups": {
+            "type": "integer",
+            "title": "N Matchups",
+            "examples": [
+              1450
+            ]
+          },
+          "overall": {
+            "$ref": "#/components/schemas/OverallValidation"
+          },
+          "by_depth": {
+            "items": {
+              "$ref": "#/components/schemas/DepthValidation"
+            },
+            "type": "array",
+            "title": "By Depth"
+          },
+          "mode": {
+            "type": "string",
+            "title": "Mode",
+            "default": "mock",
+            "examples": [
+              "mock"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "date_from",
+          "date_to",
+          "n_matchups",
+          "overall",
+          "by_depth"
+        ],
+        "title": "ArgoValidationResponse"
+      },
+      "CycloneRiskResponse": {
+        "properties": {
+          "location": {
+            "$ref": "#/components/schemas/LocationPoint"
+          },
+          "date": {
+            "type": "string",
+            "title": "Date",
+            "examples": [
+              "2025-05-15"
+            ]
+          },
+          "tchp_score_kj_cm2": {
+            "type": "number",
+            "title": "Tchp Score Kj Cm2",
+            "description": "Tropical Cyclone Heat Potential in kJ/cm^2",
+            "examples": [
+              62.4
+            ]
+          },
+          "isotherm_26c_depth_m": {
+            "type": "number",
+            "title": "Isotherm 26C Depth M",
+            "description": "Depth of 26\u00b0C isotherm in meters",
+            "examples": [
+              65.0
+            ]
+          },
+          "risk_category": {
+            "type": "string",
+            "title": "Risk Category",
+            "description": "Low, Moderate, or High",
+            "examples": [
+              "Moderate"
+            ]
+          },
+          "mode": {
+            "type": "string",
+            "title": "Mode",
+            "default": "mock",
+            "examples": [
+              "mock"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "location",
+          "date",
+          "tchp_score_kj_cm2",
+          "isotherm_26c_depth_m",
+          "risk_category"
+        ],
+        "title": "CycloneRiskResponse"
+      },
+      "DepthRange": {
+        "properties": {
+          "min": {
+            "type": "number",
+            "title": "Min",
+            "default": 0.0,
+            "examples": [
+              0.0
+            ]
+          },
+          "max": {
+            "type": "number",
+            "title": "Max",
+            "default": 450.0,
+            "examples": [
+              450.0
+            ]
+          }
+        },
+        "type": "object",
+        "title": "DepthRange"
+      },
+      "DepthValidation": {
+        "properties": {
+          "depth_m": {
+            "type": "number",
+            "title": "Depth M",
+            "examples": [
+              0.0
+            ]
+          },
+          "rmse_c": {
+            "type": "number",
+            "title": "Rmse C",
+            "examples": [
+              0.25
+            ]
+          },
+          "correlation": {
+            "type": "number",
+            "title": "Correlation",
+            "examples": [
+              0.98
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "depth_m",
+          "rmse_c",
+          "correlation"
+        ],
+        "title": "DepthValidation"
+      },
+      "DomainBounds": {
+        "properties": {
+          "lat_min": {
+            "type": "number",
+            "title": "Lat Min",
+            "default": 0.0,
+            "examples": [
+              0.0
+            ]
+          },
+          "lat_max": {
+            "type": "number",
+            "title": "Lat Max",
+            "default": 25.0,
+            "examples": [
+              25.0
+            ]
+          },
+          "lon_min": {
+            "type": "number",
+            "title": "Lon Min",
+            "default": 45.0,
+            "examples": [
+              45.0
+            ]
+          },
+          "lon_max": {
+            "type": "number",
+            "title": "Lon Max",
+            "default": 100.0,
+            "examples": [
+              100.0
+            ]
+          },
+          "resolution_deg": {
+            "type": "number",
+            "title": "Resolution Deg",
+            "default": 0.25,
+            "examples": [
+              0.25
+            ]
+          }
+        },
+        "type": "object",
+        "title": "DomainBounds"
+      },
+      "GridResponse": {
+        "properties": {
+          "date": {
+            "type": "string",
+            "title": "Date",
+            "examples": [
+              "2025-05-15"
+            ]
+          },
+          "depth_m": {
+            "type": "number",
+            "title": "Depth M",
+            "examples": [
+              0.0
+            ]
+          },
+          "lats": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array",
+            "title": "Lats",
+            "description": "Latitude axis coordinates"
+          },
+          "lons": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array",
+            "title": "Lons",
+            "description": "Longitude axis coordinates"
+          },
+          "temperature_c": {
+            "items": {
+              "items": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "type": "array"
+            },
+            "type": "array",
+            "title": "Temperature C",
+            "description": "2D array (lats x lons) of temperatures in \u00b0C (null for land cells)"
+          },
+          "mode": {
+            "type": "string",
+            "title": "Mode",
+            "default": "mock",
+            "examples": [
+              "mock"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "date",
+          "depth_m",
+          "lats",
+          "lons",
+          "temperature_c"
+        ],
+        "title": "GridResponse"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "IngestStatusResponse": {
+        "properties": {
+          "job_id": {
+            "type": "string",
+            "title": "Job Id",
+            "examples": [
+              "JOB_a1b2c3d4"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "examples": [
+              "succeeded"
+            ]
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "error_message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Message"
+          },
+          "mode": {
+            "type": "string",
+            "title": "Mode",
+            "default": "mock",
+            "examples": [
+              "mock"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "job_id",
+          "status"
+        ],
+        "title": "IngestStatusResponse"
+      },
+      "IngestTriggerResponse": {
+        "properties": {
+          "job_id": {
+            "type": "string",
+            "title": "Job Id",
+            "examples": [
+              "JOB_a1b2c3d4"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "default": "running",
+            "examples": [
+              "running"
+            ]
+          },
+          "started_at": {
+            "type": "string",
+            "title": "Started At"
+          },
+          "mode": {
+            "type": "string",
+            "title": "Mode",
+            "default": "mock",
+            "examples": [
+              "mock"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "job_id",
+          "started_at"
+        ],
+        "title": "IngestTriggerResponse"
+      },
+      "LocationPoint": {
+        "properties": {
+          "lat": {
+            "type": "number",
+            "title": "Lat",
+            "examples": [
+              12.5
+            ]
+          },
+          "lon": {
+            "type": "number",
+            "title": "Lon",
+            "examples": [
+              80.0
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "lat",
+          "lon"
+        ],
+        "title": "LocationPoint"
+      },
+      "MarineHeatwaveResponse": {
+        "properties": {
+          "location": {
+            "$ref": "#/components/schemas/LocationPoint"
+          },
+          "date": {
+            "type": "string",
+            "title": "Date",
+            "examples": [
+              "2025-05-15"
+            ]
+          },
+          "is_heatwave": {
+            "type": "boolean",
+            "title": "Is Heatwave",
+            "examples": [
+              false
+            ]
+          },
+          "sst_c": {
+            "type": "number",
+            "title": "Sst C",
+            "examples": [
+              28.4
+            ]
+          },
+          "climatological_threshold_c": {
+            "type": "number",
+            "title": "Climatological Threshold C",
+            "default": 29.5,
+            "examples": [
+              29.5
+            ]
+          },
+          "severity_category": {
+            "type": "string",
+            "title": "Severity Category",
+            "description": "None, Moderate, Strong, Severe, or Extreme",
+            "examples": [
+              "None"
+            ]
+          },
+          "mode": {
+            "type": "string",
+            "title": "Mode",
+            "default": "mock",
+            "examples": [
+              "mock"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "location",
+          "date",
+          "is_heatwave",
+          "sst_c",
+          "severity_category"
+        ],
+        "title": "MarineHeatwaveResponse"
+      },
+      "MetadataResponse": {
+        "properties": {
+          "domain_bounds": {
+            "$ref": "#/components/schemas/DomainBounds"
+          },
+          "depth_levels_m": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array",
+            "title": "Depth Levels M",
+            "examples": [
+              [
+                0,
+                5,
+                10,
+                20,
+                30,
+                50,
+                75,
+                100,
+                125,
+                150,
+                200,
+                250,
+                300,
+                400,
+                450
+              ]
+            ]
+          },
+          "valid_date_range": {
+            "$ref": "#/components/schemas/ValidDateRange"
+          },
+          "model_version": {
+            "type": "string",
+            "title": "Model Version",
+            "default": "0.1.0-mock",
+            "examples": [
+              "0.1.0-mock"
+            ]
+          },
+          "mode": {
+            "type": "string",
+            "title": "Mode",
+            "default": "mock",
+            "examples": [
+              "mock"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "domain_bounds",
+          "depth_levels_m",
+          "valid_date_range"
+        ],
+        "title": "MetadataResponse"
+      },
+      "OHCProductResponse": {
+        "properties": {
+          "location": {
+            "$ref": "#/components/schemas/LocationPoint"
+          },
+          "date": {
+            "type": "string",
+            "title": "Date",
+            "examples": [
+              "2025-05-15"
+            ]
+          },
+          "ohc_value": {
+            "type": "number",
+            "title": "Ohc Value",
+            "description": "Ocean Heat Content value",
+            "examples": [
+              3.68
+            ]
+          },
+          "unit": {
+            "type": "string",
+            "title": "Unit",
+            "default": "GJ/m^2",
+            "examples": [
+              "GJ/m^2"
+            ]
+          },
+          "ohc_joules_m2": {
+            "type": "number",
+            "title": "Ohc Joules M2",
+            "description": "Ocean Heat Content in Joules per square meter",
+            "examples": [
+              3680000000.0
+            ]
+          },
+          "reference_temperature_c": {
+            "type": "number",
+            "title": "Reference Temperature C",
+            "default": 0.0,
+            "examples": [
+              0.0
+            ]
+          },
+          "depth_range_m": {
+            "$ref": "#/components/schemas/DepthRange"
+          },
+          "mode": {
+            "type": "string",
+            "title": "Mode",
+            "default": "mock",
+            "examples": [
+              "mock"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "location",
+          "date",
+          "ohc_value",
+          "ohc_joules_m2",
+          "depth_range_m"
+        ],
+        "title": "OHCProductResponse"
+      },
+      "OverallValidation": {
+        "properties": {
+          "rmse_c": {
+            "type": "number",
+            "title": "Rmse C",
+            "examples": [
+              0.42
+            ]
+          },
+          "correlation": {
+            "type": "number",
+            "title": "Correlation",
+            "examples": [
+              0.96
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "rmse_c",
+          "correlation"
+        ],
+        "title": "OverallValidation"
+      },
+      "PredictResponse": {
+        "properties": {
+          "requested_location": {
+            "$ref": "#/components/schemas/LocationPoint"
+          },
+          "nearest_grid_point": {
+            "$ref": "#/components/schemas/LocationPoint"
+          },
+          "date": {
+            "type": "string",
+            "title": "Date",
+            "examples": [
+              "2025-05-15"
+            ]
+          },
+          "profile": {
+            "items": {
+              "$ref": "#/components/schemas/ProfilePoint"
+            },
+            "type": "array",
+            "title": "Profile"
+          },
+          "surface_inputs_used": {
+            "$ref": "#/components/schemas/SurfaceInputs"
+          },
+          "mode": {
+            "type": "string",
+            "title": "Mode",
+            "default": "mock",
+            "examples": [
+              "mock"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "requested_location",
+          "nearest_grid_point",
+          "date",
+          "profile",
+          "surface_inputs_used"
+        ],
+        "title": "PredictResponse"
+      },
+      "ProfilePoint": {
+        "properties": {
+          "depth_m": {
+            "type": "number",
+            "title": "Depth M",
+            "examples": [
+              0.0
+            ]
+          },
+          "temperature_c": {
+            "type": "number",
+            "title": "Temperature C",
+            "examples": [
+              28.5
+            ]
+          },
+          "uncertainty_c": {
+            "type": "number",
+            "title": "Uncertainty C",
+            "examples": [
+              0.2
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "depth_m",
+          "temperature_c",
+          "uncertainty_c"
+        ],
+        "title": "ProfilePoint"
+      },
+      "SurfaceInputs": {
+        "properties": {
+          "sst": {
+            "type": "number",
+            "title": "Sst",
+            "description": "Sea Surface Temperature (\u00b0C)",
+            "examples": [
+              28.5
+            ]
+          },
+          "sss": {
+            "type": "number",
+            "title": "Sss",
+            "description": "Sea Surface Salinity (PSU)",
+            "examples": [
+              34.5
+            ]
+          },
+          "sla": {
+            "type": "number",
+            "title": "Sla",
+            "description": "Sea Level Anomaly (m)",
+            "examples": [
+              0.02
+            ]
+          },
+          "u": {
+            "type": "number",
+            "title": "U",
+            "description": "Zonal Current Velocity (m/s)",
+            "examples": [
+              0.1
+            ]
+          },
+          "v": {
+            "type": "number",
+            "title": "V",
+            "description": "Meridional Current Velocity (m/s)",
+            "examples": [
+              -0.05
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "sst",
+          "sss",
+          "sla",
+          "u",
+          "v"
+        ],
+        "title": "SurfaceInputs"
+      },
+      "TransectPoint": {
+        "properties": {
+          "lat": {
+            "type": "number",
+            "title": "Lat",
+            "examples": [
+              12.5
+            ]
+          },
+          "lon": {
+            "type": "number",
+            "title": "Lon",
+            "examples": [
+              80.0
+            ]
+          },
+          "distance_km": {
+            "type": "number",
+            "title": "Distance Km",
+            "description": "Cumulative distance from start point (km)",
+            "examples": [
+              0.0
+            ]
+          },
+          "is_ocean": {
+            "type": "boolean",
+            "title": "Is Ocean",
+            "description": "Whether point is in ocean or land",
+            "examples": [
+              true
+            ]
+          },
+          "profile": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ProfilePoint"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Profile",
+            "description": "Depth profile (null if land)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "lat",
+          "lon",
+          "distance_km",
+          "is_ocean"
+        ],
+        "title": "TransectPoint"
+      },
+      "TransectResponse": {
+        "properties": {
+          "date": {
+            "type": "string",
+            "title": "Date",
+            "examples": [
+              "2025-05-15"
+            ]
+          },
+          "n_points": {
+            "type": "integer",
+            "title": "N Points",
+            "examples": [
+              50
+            ]
+          },
+          "start": {
+            "$ref": "#/components/schemas/LocationPoint"
+          },
+          "end": {
+            "$ref": "#/components/schemas/LocationPoint"
+          },
+          "points": {
+            "items": {
+              "$ref": "#/components/schemas/TransectPoint"
+            },
+            "type": "array",
+            "title": "Points"
+          },
+          "mode": {
+            "type": "string",
+            "title": "Mode",
+            "default": "mock",
+            "examples": [
+              "mock"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "date",
+          "n_points",
+          "start",
+          "end",
+          "points"
+        ],
+        "title": "TransectResponse"
+      },
+      "ValidDateRange": {
+        "properties": {
+          "start": {
+            "type": "string",
+            "title": "Start",
+            "default": "2024-01-01",
+            "examples": [
+              "2024-01-01"
+            ]
+          },
+          "end": {
+            "type": "string",
+            "title": "End",
+            "default": "2026-06-30",
+            "examples": [
+              "2026-06-30"
+            ]
+          }
+        },
+        "type": "object",
+        "title": "ValidDateRange"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}
