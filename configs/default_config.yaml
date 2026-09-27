@@ -1,0 +1,70 @@
+# OceanEmbed - Default Configuration
+
+experiment:
+  name: "exp_oceanembed_nio_v1"
+  description: "Self-supervised ViT MAE + Depth-Conditioned Decoder on North Indian Ocean"
+  seed: 42
+  device: "auto"  # "cuda", "mps", or "cpu"
+
+data:
+  spatial:
+    lat_min: 0.0
+    lat_max: 25.0
+    lon_min: 40.0
+    lon_max: 100.0
+    resolution: 0.25  # degrees
+  channels:
+    - "sst_anomaly"    # °C
+    - "sss_anomaly"    # psu
+    - "ssh_anomaly"    # m (SLA)
+    - "u_current"      # m/s
+    - "v_current"      # m/s
+    - "wind_u"         # m/s
+    - "wind_v"         # m/s
+  num_channels: 7
+  lag_days: 5  # T_lag (today + 4 prior days)
+  depth_levels: [0, 10, 20, 30, 50, 75, 100, 125, 150, 200, 250, 300, 400, 600, 1000]
+  num_depths: 15
+  split:
+    train_years: [2015, 2016, 2017, 2018, 2019, 2020]
+    val_years: [2021]
+    test_years: [2022]
+
+pretraining:
+  patch_size: 16
+  embed_dim: 256
+  depth: 6
+  num_heads: 8
+  mlp_ratio: 4.0
+  mask_ratio: 0.75
+  decoder_embed_dim: 128
+  decoder_depth: 3
+  decoder_num_heads: 4
+  lr: 3.0e-4
+  min_lr: 1.0e-6
+  weight_decay: 0.05
+  warmup_epochs: 5
+  epochs: 50
+  batch_size: 16
+
+decoder:
+  depth_embed_dim: 256
+  decoder_layers: 4
+  num_heads: 8
+  mlp_ratio: 4.0
+  lr: 1.0e-4
+  min_lr: 1.0e-6
+  weight_decay: 0.01
+  epochs: 40
+  batch_size: 8
+  loss_weights:
+    w_temp: 1.0
+    w_thermo: 0.2
+    w_stability: 0.1
+
+paths:
+  raw_data_dir: "data/raw"
+  interim_data_dir: "data/interim"
+  processed_data_dir: "data/processed"
+  checkpoints_dir: "checkpoints"
+  logs_dir: "logs"

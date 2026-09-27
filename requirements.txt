@@ -1,0 +1,27 @@
+# OceanEmbed - Dependencies
+# Target Python: 3.10+
+
+# Core Scientific & ML
+numpy>=1.24.0
+torch>=2.0.0
+xarray>=2023.0.0
+pandas>=2.0.0
+scipy>=1.10.0
+scikit-learn>=1.2.0
+einops>=0.7.0
+pyyaml>=6.0
+
+# Visualization & Demo
+matplotlib>=3.7.0
+streamlit>=1.30.0
+plotly>=5.15.0
+
+# Optional / Ocean specific (when available in environment)
+# gsw>=3.6.0
+# argopy>=0.1.14
+# copernicusmarine>=1.0.0
+
+# Testing & Quality
+pytest>=7.0.0
+black>=23.0.0
+ruff>=0.1.0

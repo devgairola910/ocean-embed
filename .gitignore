@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+env/
+venv/
+*.egg-info/
+.pytest_cache/
+
+# Data
+data/raw/
+data/interim/
+*.nc
+*.h5
+*.npy
+*.npz
+
+# Model weights & logs
+checkpoints/
+*.pt
+*.pth
+*.ckpt
+logs/
+wandb/
+
+# OS & Docs
+.DS_Store
+*.md
