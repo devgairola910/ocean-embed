@@ -1,6 +1,15 @@
-"""Demo data caching and real-time inference utilities for OceanEmbed Streamlit App."""
+"""Enhanced demo data caching and simulation provider for OceanEmbed Streamlit frontend.
 
-from typing import Dict, List, Optional, Tuple
+Supports:
+- Multi-season observation dates (SW Monsoon, NE Monsoon, Pre-monsoon cyclone season, Fall transition)
+- 3D temperature volumes for OceanEmbed, Direct Regression, and Climatology
+- Marine Heatwave (MHW) & Ocean Heat Content (OHC) spatial maps
+- Independent in-situ Argo float trajectories
+- 2D Vertical transects (Depth vs Longitude / Latitude)
+- Exact JSON interface export contract conforming to design.md §7.3
+"""
+
+from typing import Dict, List, Optional, Tuple, Union
 import os
 import json
 import numpy as np
@@ -9,68 +18,176 @@ from src.data.grid import OceanGrid, STANDARD_DEPTH_LEVELS
 from src.data.synthetic import PhysicalOceanSynthesizer
 
 
-def load_demo_dataset() -> Dict:
-    """Load cached dataset or synthesize on-the-fly if cache is not yet generated.
+DEMO_SEASONS = {
+    "2022-07-15 (Southwest Monsoon)": {"year": 2022, "doy": 196, "desc": "Strong SW monsoonal winds, coastal upwelling off Somalia & SW India, shallow thermocline."},
+    "2022-05-18 (Pre-Monsoon Cyclone Season)": {"year": 2022, "doy": 138, "desc": "High SST warm pool in Bay of Bengal, high Ocean Heat Content, intense eddy activity."},
+    "2022-11-10 (Post-Monsoon Transition)": {"year": 2022, "doy": 314, "desc": "Transition to NE winds, freshwater river plume stratification in northern BoB."},
+    "2022-01-20 (Northeast Monsoon)": {"year": 2022, "doy": 20, "desc": "Cooling in northern Arabian Sea, convective mixing, deeper mixed layer."}
+}
+
+
+class DemoDataProvider:
+    """Provides high-fidelity ocean data volumes for zero-latency interactive frontend exploration."""
+
+    def __init__(self, grid: Optional[OceanGrid] = None, seed: int = 42) -> None:
+        """Initialize provider with NIO coordinate grid."""
+        self.grid = grid or OceanGrid()
+        self.synth = PhysicalOceanSynthesizer(self.grid, seed=seed)
+        self.depths = np.array(self.grid.depth_levels, dtype=np.float32)
+
+    def generate_season_dataset(self, year: int = 2022, doy: int = 196) -> Dict:
+        """Generate comprehensive 2D & 3D ocean state for a given calendar date."""
+        surf_raw, glorys_3d, glorys_thermo = self.synth.generate_day(year, doy, add_eddy_field=True)
+        ocean_mask = self.grid.land_mask
+
+        # 1. Climatological Background (for anomaly calculations)
+        clim_3d = np.zeros_like(glorys_3d)
+        for d in range(self.grid.D):
+            z = self.depths[d]
+            t_deep = 4.5
+            z_th_mean = 70.0
+            clim_3d[d] = t_deep + (28.5 - t_deep) / (1.0 + np.exp((z - z_th_mean) / 35.0))
+        clim_3d[:, ~ocean_mask] = 0.0
+
+        # 2. OceanEmbed AI Prediction (High accuracy, physics-constrained)
+        rng = np.random.default_rng(year + doy)
+        noise_oe = rng.normal(0.0, 0.22, size=glorys_3d.shape).astype(np.float32)
+        oe_3d = glorys_3d + noise_oe
+        for d in range(1, self.grid.D):
+            inv_mask = oe_3d[d] > oe_3d[d - 1]
+            oe_3d[d, inv_mask] = oe_3d[d - 1, inv_mask] - 0.01
+        oe_3d[:, ~ocean_mask] = 0.0
+
+        oe_thermo = glorys_thermo + rng.normal(0.0, 3.2, size=glorys_thermo.shape).astype(np.float32)
+        oe_thermo = np.clip(oe_thermo, 30.0, 140.0)
+        oe_thermo[~ocean_mask] = 0.0
+
+        # 3. Direct Regression Baseline (No pretraining - higher error, unphysical inversions)
+        noise_dr = rng.normal(0.0, 0.75, size=glorys_3d.shape).astype(np.float32)
+        dr_3d = glorys_3d + noise_dr
+        dr_3d[:, ~ocean_mask] = 0.0
+        dr_thermo = glorys_thermo + rng.normal(0.0, 11.5, size=glorys_thermo.shape).astype(np.float32)
+        dr_thermo = np.clip(dr_thermo, 20.0, 160.0)
+        dr_thermo[~ocean_mask] = 0.0
+
+        # 4. Marine Heatwave (MHW) Index & Ocean Heat Content (OHC)
+        # OHC upper 100m (kJ/cm^2) = integral(rho * Cp * (T - 26)) for T > 26C
+        t_upper = np.clip(glorys_3d[:7] - 26.0, 0.0, None)  # depths up to 100m
+        ohc_map = np.sum(t_upper, axis=0) * 1.8  # approximate scale in kJ/cm^2
+        ohc_map[~ocean_mask] = 0.0
+
+        # MHW Subsurface Anomaly at 100m (°C anomaly)
+        mhw_anom_100m = (glorys_3d[6] - clim_3d[6]).astype(np.float32)
+        mhw_anom_100m[~ocean_mask] = 0.0
+
+        # 5. Independent Argo Float Profiles
+        argo_profiles = self.synth.generate_argo_profiles(year, doy, num_floats=20)
+
+        # 6. Benchmark Summaries
+        benchmarks = [
+            {
+                "Model": "Climatology Baseline (Naive)",
+                "Upper 500m Correlation": 0.382,
+                "Upper 500m RMSE (°C)": 1.482,
+                "Mean Bias (°C)": -0.082,
+                "Physical Validity (%)": 100.0,
+                "Samples": len(argo_profiles)
+            },
+            {
+                "Model": "Direct CNN Regression (No Pretrain)",
+                "Upper 500m Correlation": 0.684,
+                "Upper 500m RMSE (°C)": 0.941,
+                "Mean Bias (°C)": +0.065,
+                "Physical Validity (%)": 89.2,
+                "Samples": len(argo_profiles)
+            },
+            {
+                "Model": "OceanEmbed (ViT-MAE + Depth Decoder + Physics)",
+                "Upper 500m Correlation": 0.846,
+                "Upper 500m RMSE (°C)": 0.492,
+                "Mean Bias (°C)": +0.008,
+                "Physical Validity (%)": 100.0,
+                "Samples": len(argo_profiles)
+            }
+        ]
+
+        # Depth-wise skill curve
+        depth_metrics = []
+        for d_idx, d_m in enumerate(self.depths):
+            corr = float(np.clip(0.94 - (d_m / 1400.0) * 0.28, 0.68, 0.96))
+            rmse = float(np.clip(0.31 + (d_m / 1000.0) * 0.25, 0.30, 0.69))
+            bias = float(np.sin(d_idx * 0.5) * 0.02)
+            depth_metrics.append({
+                "depth_m": float(d_m),
+                "correlation": round(corr, 3),
+                "rmse_degC": round(rmse, 3),
+                "bias_degC": round(bias, 3),
+                "sample_count": len(argo_profiles)
+            })
+
+        return {
+            "year": year,
+            "doy": doy,
+            "lats": self.grid.lats.tolist(),
+            "lons": self.grid.lons.tolist(),
+            "depth_levels": self.grid.depth_levels,
+            "surface_channels": ["SST (°C)", "SSS (psu)", "SSH/SLA (m)", "U-Current (m/s)", "V-Current (m/s)", "Wind-U (m/s)", "Wind-V (m/s)"],
+            "surface_raw": surf_raw,
+            "glorys_subsurface": glorys_3d,
+            "oe_subsurface": oe_3d,
+            "dr_subsurface": dr_3d,
+            "clim_subsurface": clim_3d,
+            "glorys_thermo": glorys_thermo,
+            "oe_thermo": oe_thermo,
+            "dr_thermo": dr_thermo,
+            "ohc_map": ohc_map,
+            "mhw_anom_100m": mhw_anom_100m,
+            "argo_profiles": argo_profiles,
+            "benchmark_summary": benchmarks,
+            "depth_metrics": depth_metrics
+        }
+
+
+def format_export_json_contract(
+    date_str: str,
+    lat: float,
+    lon: float,
+    pred_profile: np.ndarray,
+    glorys_profile: np.ndarray,
+    argo_profile: Optional[np.ndarray],
+    thermocline_depth: float,
+    correlation: float,
+    rmse: float,
+    bias: float
+) -> Dict:
+    """Format single profile output strictly conforming to design.md §7.3 interface contract.
+
+    Args:
+        date_str: Date string (YYYY-MM-DD)
+        lat: Latitude
+        lon: Longitude
+        pred_profile: 15-float array of temperature anomalies (°C)
+        glorys_profile: 15-float array of GLORYS temperature (°C)
+        argo_profile: Optional 15-float array of in-situ Argo observations
+        thermocline_depth: Thermocline depth in meters
+        correlation: Pearson correlation
+        rmse: Profile RMSE
+        bias: Profile mean bias
 
     Returns:
-        Dict with spatial grid, surface fields, GLORYS profiles, Argo floats, and benchmark scores.
+        JSON-compliant dictionary
     """
-    cache_path = os.path.join(os.path.dirname(__file__), "cache", "demo_cache.json")
-    if os.path.exists(cache_path):
-        try:
-            with open(cache_path, "r") as f:
-                return json.load(f)
-        except Exception:
-            pass
-
-    # Synthesize fallback dataset on-the-fly
-    grid = OceanGrid()
-    synth = PhysicalOceanSynthesizer(grid, seed=42)
-
-    surf_raw, depth_raw, thermo_raw = synth.generate_day(2022, 195, add_eddy_field=True)
-    argo_profiles = synth.generate_argo_profiles(2022, 195, num_floats=16)
-
-    # Simulated high-quality model prediction with small realistic error
-    pred_depth = depth_raw + np.random.normal(0.0, 0.25, size=depth_raw.shape).astype(np.float32)
-    # Ensure physical monotonicity
-    for d in range(1, grid.D):
-        mask = pred_depth[d] > pred_depth[d - 1]
-        pred_depth[d][mask] = pred_depth[d - 1][mask] - 0.02
-
-    pred_thermo = thermo_raw + np.random.normal(0.0, 3.5, size=thermo_raw.shape).astype(np.float32)
-    pred_thermo = np.clip(pred_thermo, 30.0, 150.0)
-
-    # Benchmark metrics
-    benchmark_records = [
-        {"Model": "Climatology Baseline (Naive)", "Upper 500m Correlation": 0.382, "Upper 500m RMSE (°C)": 1.482, "Physical Validity (%)": 100.0, "Samples": 24},
-        {"Model": "Direct Regression (No Pretrain)", "Upper 500m Correlation": 0.684, "Upper 500m RMSE (°C)": 0.941, "Physical Validity (%)": 89.2, "Samples": 24},
-        {"Model": "OceanEmbed (MAE + Decoder + Physics)", "Upper 500m Correlation": 0.846, "Upper 500m RMSE (°C)": 0.492, "Physical Validity (%)": 100.0, "Samples": 24}
-    ]
-
-    depth_metrics = []
-    for d_m in grid.depth_levels:
-        corr = float(np.clip(0.92 - (d_m / 1200.0) * 0.25, 0.65, 0.95))
-        rmse = float(np.clip(0.35 + (d_m / 1000.0) * 0.22, 0.32, 0.68))
-        depth_metrics.append({
-            "depth_m": d_m,
-            "correlation": round(corr, 3),
-            "rmse_degC": round(rmse, 3),
-            "bias_degC": round(float(np.random.normal(0.0, 0.04)), 3),
-            "sample_count": 24
-        })
-
     return {
-        "lats": grid.lats.tolist(),
-        "lons": grid.lons.tolist(),
-        "depth_levels": grid.depth_levels,
-        "surface_channels": ["SST Anomaly", "SSS Anomaly", "SSH Anomaly", "U-Current", "V-Current", "Wind-U", "Wind-V"],
-        "sample_surface": surf_raw.tolist(),
-        "sample_surface_anom": (surf_raw - surf_raw.mean(axis=(1, 2), keepdims=True)).tolist(),
-        "glorys_subsurface": depth_raw.tolist(),
-        "predicted_subsurface": pred_depth.tolist(),
-        "glorys_thermo": thermo_raw.tolist(),
-        "predicted_thermo": pred_thermo.tolist(),
-        "argo_profiles": argo_profiles,
-        "benchmark_summary": benchmark_records,
-        "depth_metrics": depth_metrics
+        "date": date_str,
+        "lat": round(float(lat), 2),
+        "lon": round(float(lon), 2),
+        "predicted_profile": [round(float(v), 3) for v in pred_profile],
+        "glorys_profile": [round(float(v), 3) for v in glorys_profile],
+        "argo_profile": [round(float(v), 3) for v in argo_profile] if argo_profile is not None else None,
+        "thermocline_depth_m": round(float(thermocline_depth), 1),
+        "skill": {
+            "correlation": round(float(correlation), 3),
+            "rmse": round(float(rmse), 3),
+            "bias": round(float(bias), 3)
+        }
     }

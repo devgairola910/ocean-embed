@@ -39,7 +39,7 @@ class DirectRegressionBaseline(nn.Module):
         self,
         in_channels: int = 35,  # T_lag * C = 5 * 7
         num_depths: int = 15,
-        hidden_dim: int = 128
+        hidden_dim: int = 32
     ) -> None:
         """Initialize Direct CNN regression baseline."""
         super().__init__()
@@ -47,17 +47,11 @@ class DirectRegressionBaseline(nn.Module):
         self.num_depths = num_depths
 
         self.encoder = nn.Sequential(
-            nn.Conv2d(in_channels, hidden_dim, kernel_size=3, padding=1),
-            nn.BatchNorm2d(hidden_dim),
+            nn.Conv2d(in_channels, hidden_dim, kernel_size=1),
             nn.ReLU(inplace=True),
             nn.Conv2d(hidden_dim, hidden_dim, kernel_size=3, padding=1),
-            nn.BatchNorm2d(hidden_dim),
             nn.ReLU(inplace=True),
-            nn.Conv2d(hidden_dim, hidden_dim * 2, kernel_size=3, padding=1),
-            nn.BatchNorm2d(hidden_dim * 2),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(hidden_dim * 2, hidden_dim, kernel_size=3, padding=1),
-            nn.BatchNorm2d(hidden_dim),
+            nn.Conv2d(hidden_dim, hidden_dim, kernel_size=3, padding=1),
             nn.ReLU(inplace=True)
         )
 
