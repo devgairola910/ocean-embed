@@ -26,4 +26,8 @@ wandb/
 
 # OS
 .DS_Store
-
+/tasks.md 
+/architecture.md 
+/design.md 
+/rules.md 
+/prd.md 
