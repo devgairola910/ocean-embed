@@ -11,7 +11,14 @@ Supports:
 
 from typing import Dict, List, Optional, Tuple, Union
 import os
+import sys
 import json
+
+# Ensure project root is in sys.path
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
+
 import numpy as np
 
 from src.data.grid import OceanGrid, STANDARD_DEPTH_LEVELS
