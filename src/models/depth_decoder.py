@@ -95,8 +95,10 @@ class DepthConditionedDecoder(nn.Module):
         self.img_size = img_size
         self.patch_size = patch_size
 
-        self.grid_h = img_size[0] // patch_size
-        self.grid_w = img_size[1] // patch_size
+        pad_h = (patch_size - img_size[0] % patch_size) % patch_size
+        pad_w = (patch_size - img_size[1] % patch_size) % patch_size
+        self.grid_h = (img_size[0] + pad_h) // patch_size
+        self.grid_w = (img_size[1] + pad_w) // patch_size
         self.num_patches = self.grid_h * self.grid_w
 
         # 1. Learned Depth Query Tokens (1 per depth level)

@@ -86,8 +86,10 @@ class PatchEmbedding2D(nn.Module):
         self.in_channels = in_channels
         self.embed_dim = embed_dim
 
-        self.grid_h = img_size[0] // patch_size
-        self.grid_w = img_size[1] // patch_size
+        pad_h = (patch_size - img_size[0] % patch_size) % patch_size
+        pad_w = (patch_size - img_size[1] % patch_size) % patch_size
+        self.grid_h = (img_size[0] + pad_h) // patch_size
+        self.grid_w = (img_size[1] + pad_w) // patch_size
         self.num_patches = self.grid_h * self.grid_w
 
         self.proj = nn.Conv2d(
@@ -342,11 +344,13 @@ class OceanMAEEncoder(nn.Module):
 
         # Extract ground truth target patches (B, N, patch_pixels)
         P = self.patch_size
-        gh, gw = self.patch_embed.grid_h, self.patch_embed.grid_w
         pad_h = (P - H % P) % P
         pad_w = (P - W % P) % P
         if pad_h > 0 or pad_w > 0:
             x_flat = F.pad(x_flat, (0, pad_w, 0, pad_h), mode="replicate")
+
+        gh = x_flat.shape[2] // P
+        gw = x_flat.shape[3] // P
 
         # Reshape to patches
         # (B, C_in, gh, P, gw, P) -> (B, gh, gw, C_in, P, P) -> (B, N, P*P*C_in)
