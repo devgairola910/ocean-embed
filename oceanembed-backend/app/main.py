@@ -72,6 +72,17 @@ def create_app() -> FastAPI:
             content={"error": {"code": "HTTP_ERROR", "message": str(exc.detail)}},
         )
 
+    @app.get("/", tags=["Root"])
+    def root():
+        return {
+            "name": "OceanEmbed API",
+            "version": "0.1.0",
+            "description": "Subsurface Ocean Temperature Reconstruction Backend",
+            "docs": "/docs",
+            "health": "/health",
+            "api_v1": settings.API_V1_PREFIX,
+        }
+
     @app.get("/health", tags=["Health Check"])
     def health_check():
         return {"status": "ok"}
