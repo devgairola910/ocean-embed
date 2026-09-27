@@ -24,10 +24,10 @@ checkpoints/
 logs/
 wandb/
 
-# OS
+# OS & Ignored Docs
 .DS_Store
-/tasks.md 
-/architecture.md 
-/design.md 
-/rules.md 
-/prd.md 
+tasks.md
+architecture.md
+design.md
+rules.md
+prd.md
