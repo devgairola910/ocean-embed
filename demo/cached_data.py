@@ -35,7 +35,21 @@ DEMO_SEASONS = {
     "2022-01-20 (Northeast Monsoon)": {"year": 2022, "doy": 20, "date_str": "2024-01-20", "desc": "Cooling in northern Arabian Sea, convective mixing, deeper mixed layer."}
 }
 
-BACKEND_BASE_URL = os.getenv("BACKEND_API_URL", "http://localhost:8000")
+def get_backend_url() -> str:
+    env_url = os.getenv("BACKEND_API_URL")
+    if env_url:
+        return env_url
+    try:
+        import streamlit as st
+        if "BACKEND_API_URL" in st.secrets:
+            return st.secrets["BACKEND_API_URL"]
+    except Exception:
+        pass
+    return "http://13.60.25.240:8000"
+
+
+BACKEND_BASE_URL = get_backend_url()
+
 
 
 def check_backend_health() -> Tuple[bool, str, str]:
