@@ -1,0 +1,57 @@
+# OceanEmbed - North Indian Ocean Grand Challenge Configuration
+# Target Domain: Bay of Bengal + Arabian Sea + Equatorial Indian Ocean
+
+experiment:
+  name: "exp_oceanembed_nio_sih2026"
+  description: "Two-stage self-supervised MAE + Physics-regularized depth decoder for 0-1000m temperature anomaly retrieval"
+  seed: 2026
+  device: "auto"
+
+domain:
+  region: "North Indian Ocean"
+  lat_bounds: [0.0, 25.0]
+  lon_bounds: [40.0, 100.0]
+  grid_resolution_deg: 0.25
+  depth_levels_m: [0, 10, 20, 30, 50, 75, 100, 125, 150, 200, 250, 300, 400, 600, 1000]
+
+temporal:
+  lag_days: 5
+  train_years: [2015, 2016, 2017, 2018, 2019, 2020]
+  val_years: [2021]
+  test_years: [2022]
+
+architecture:
+  encoder:
+    type: "ViT-MAE"
+    in_channels: 35   # 5 days x 7 surface channels
+    patch_size: 16
+    embed_dim: 256
+    depth: 6
+    num_heads: 8
+    mlp_ratio: 4.0
+    mask_ratio: 0.75
+  decoder:
+    type: "DepthCrossAttentionDecoder"
+    num_depth_queries: 15
+    decoder_layers: 4
+    num_heads: 8
+    embed_dim: 256
+
+loss:
+  w_temp_anomaly: 1.0
+  w_thermocline: 0.2
+  w_stability_penalty: 0.1
+
+optimization:
+  stage_b_pretrain:
+    optimizer: "AdamW"
+    lr: 3.0e-4
+    weight_decay: 0.05
+    epochs: 30
+    batch_size: 16
+  stage_c_supervised:
+    optimizer: "AdamW"
+    lr: 1.0e-4
+    weight_decay: 0.01
+    epochs: 40
+    batch_size: 8

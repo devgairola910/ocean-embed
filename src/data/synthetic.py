@@ -210,9 +210,17 @@ class PhysicalOceanSynthesizer:
 
         for f_idx in range(num_floats):
             # Select random ocean location
+            lat_span = self.grid.lat_max - self.grid.lat_min
+            lon_span = self.grid.lon_max - self.grid.lon_min
+            lat_min_b = self.grid.lat_min + (0.5 if lat_span > 2.0 else 0.0)
+            lat_max_b = self.grid.lat_max - (0.5 if lat_span > 2.0 else 0.0)
+            lon_min_b = self.grid.lon_min + (0.5 if lon_span > 2.0 else 0.0)
+            lon_max_b = self.grid.lon_max - (0.5 if lon_span > 2.0 else 0.0)
+
+            lat_i, lon_j = 0, 0
             for _ in range(50):
-                lat = float(self.rng.uniform(self.grid.lat_min + 1.0, self.grid.lat_max - 1.0))
-                lon = float(self.rng.uniform(self.grid.lon_min + 2.0, self.grid.lon_max - 2.0))
+                lat = float(self.rng.uniform(lat_min_b, lat_max_b))
+                lon = float(self.rng.uniform(lon_min_b, lon_max_b))
                 lat_i, lon_j = self.grid.find_nearest_indices(lat, lon)
                 if self.grid.land_mask[lat_i, lon_j]:
                     break
