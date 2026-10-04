@@ -32,7 +32,7 @@ from src.data.grid import OceanGrid
 
 # Page configuration
 st.set_page_config(
-    page_title="OceanEmbed — Subsurface Ocean AI",
+    page_title="SeaGuard & OceanEmbed — Subsurface Ocean Intelligence",
     page_icon="🌊",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -41,37 +41,55 @@ st.set_page_config(
 # High-Grade UI Theme & CSS
 st.markdown("""
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&family=Inter:wght@400;500;600;700&display=swap');
     
     html, body, [class*="css"] {
         font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     }
-    
-    .brand-title {
+
+    .stApp {
+        background: radial-gradient(circle at 50% 15%, #0e3058 0%, #05162c 60%, #030d1a 100%);
+        color: #FFFFFF;
+    }
+
+    .hero-banner {
+        text-align: center;
+        padding: 24px 20px 10px;
+        position: relative;
+    }
+
+    .brand-hero-title {
         font-family: 'Outfit', sans-serif;
-        font-size: 2.4rem;
-        font-weight: 800;
-        background: linear-gradient(90deg, #6FFFE9 0%, #5BC0BE 50%, #3A86FF 100%);
+        font-size: clamp(3.5rem, 6vw, 5.2rem);
+        font-weight: 900;
+        letter-spacing: 0.05em;
+        line-height: 0.95;
+        text-transform: uppercase;
+        background: linear-gradient(180deg, #FFFFFF 0%, #D4EFFF 50%, #38BDF8 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
-        margin-bottom: 0px;
-        letter-spacing: -0.5px;
+        margin-bottom: 8px;
+        filter: drop-shadow(0 4px 15px rgba(0, 0, 0, 0.4));
     }
-    
-    .brand-subtitle {
-        font-size: 1.0rem;
-        color: #94A3B8;
-        margin-top: -4px;
-        margin-bottom: 18px;
+
+    .brand-hero-sub {
+        font-family: 'Outfit', sans-serif;
+        font-size: 1.15rem;
+        font-weight: 600;
+        letter-spacing: 0.35em;
+        color: rgba(220, 245, 255, 0.9);
+        text-transform: uppercase;
+        margin-bottom: 20px;
     }
-    
+
     .status-badge {
         display: inline-flex;
         align-items: center;
-        padding: 5px 14px;
-        border-radius: 20px;
+        padding: 6px 16px;
+        border-radius: 9999px;
         font-size: 0.85rem;
         font-weight: 600;
+        backdrop-filter: blur(10px);
     }
     
     .status-badge-pulse {
@@ -83,49 +101,54 @@ st.markdown("""
     }
     
     .glass-card {
-        background: rgba(30, 41, 59, 0.65);
-        border: 1px solid rgba(51, 65, 85, 0.6);
-        border-radius: 12px;
+        background: rgba(14, 42, 77, 0.68);
+        border: 1.2px solid rgba(255, 255, 255, 0.18);
+        border-radius: 16px;
         padding: 16px 20px;
         margin-bottom: 15px;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        box-shadow: 0 12px 30px rgba(0, 8, 24, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.2);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
     }
     
     .metric-value-large {
         font-family: 'Outfit', sans-serif;
         font-size: 1.9rem;
-        font-weight: 700;
+        font-weight: 800;
         color: #F8FAFC;
         margin-top: 2px;
     }
     
     .metric-label-muted {
         font-size: 0.82rem;
-        color: #94A3B8;
-        font-weight: 500;
+        color: rgba(200, 225, 250, 0.8);
+        font-weight: 600;
         text-transform: uppercase;
         letter-spacing: 0.5px;
     }
     
     .stTabs [data-baseweb="tab-list"] {
-        gap: 8px;
-        background-color: #0F172A;
-        padding: 6px;
-        border-radius: 10px;
-        border: 1px solid #1E293B;
+        gap: 10px;
+        background-color: rgba(10, 30, 60, 0.7);
+        padding: 8px;
+        border-radius: 14px;
+        border: 1.2px solid rgba(255, 255, 255, 0.12);
+        backdrop-filter: blur(14px);
     }
     
     .stTabs [data-baseweb="tab"] {
         font-size: 0.95rem;
         font-weight: 600;
-        padding: 8px 18px;
-        border-radius: 8px;
-        color: #94A3B8;
+        padding: 9px 20px;
+        border-radius: 10px;
+        color: rgba(255, 255, 255, 0.75);
     }
     
     .stTabs [aria-selected="true"] {
-        background-color: #1E293B !important;
+        background-color: rgba(255, 255, 255, 0.16) !important;
         color: #6FFFE9 !important;
+        border: 1px solid rgba(111, 255, 233, 0.4) !important;
+        box-shadow: 0 0 15px rgba(111, 255, 233, 0.2);
     }
 </style>
 """, unsafe_allow_html=True)
@@ -143,30 +166,43 @@ is_backend_live, backend_status, backend_mode = check_backend_health()
 # ----------------------------------------------------
 # Top Navigation & Header
 # ----------------------------------------------------
-col_title, col_status = st.columns([3.2, 1.4])
-with col_title:
-    st.markdown('<div class="brand-title">🌊 OceanEmbed</div>', unsafe_allow_html=True)
-    st.markdown('<div class="brand-subtitle"><strong>SIH26066 — Ministry of Earth Sciences (MoES)</strong> · <em>Satellite-to-Subsurface Ocean Thermal Reconstruction (0–1000 m)</em></div>', unsafe_allow_html=True)
-
-with col_status:
-    if is_backend_live:
-        st.markdown(f"""
-        <div style="text-align: right; padding-top: 8px;">
-            <span class="status-badge" style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); color: #34D399;">
-                <span class="status-badge-pulse" style="background-color: #10B981; box-shadow: 0 0 8px #10B981;"></span> 🟢 FastAPI Connected (MODE: {backend_mode})
-            </span>
+st.markdown("""
+<div class="hero-banner">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+        <div style="font-family: 'Outfit'; font-size: 1.8rem; font-weight: 800; color: #FFFFFF; letter-spacing: -0.02em;">
+            🌊 OceanEmbed
         </div>
-        """, unsafe_allow_html=True)
-    else:
-        st.markdown("""
-        <div style="text-align: right; padding-top: 8px;">
-            <span class="status-badge" style="background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.3); color: #FBBF24;">
-                <span class="status-badge-pulse" style="background-color: #F59E0B; box-shadow: 0 0 8px #F59E0B;"></span> 🟡 Standalone Mode (API Offline)
-            </span>
+        <div>
+            <span style="color: rgba(255,255,255,0.85); font-size: 0.9rem; margin-right: 20px; font-weight: 500;">Subsurface Profile</span>
+            <span style="color: rgba(255,255,255,0.85); font-size: 0.9rem; margin-right: 20px; font-weight: 500;">Satellite Inputs</span>
+            <span style="color: rgba(255,255,255,0.85); font-size: 0.9rem; margin-right: 20px; font-weight: 500;">2D Transects</span>
+            <span style="color: rgba(255,255,255,0.85); font-size: 0.9rem; margin-right: 20px; font-weight: 500;">Benchmarks</span>
+            <span style="color: rgba(255,255,255,0.85); font-size: 0.9rem; margin-right: 20px; font-weight: 500;">Architecture & Physics</span>
         </div>
-        """, unsafe_allow_html=True)
+    </div>
+    <div class="brand-hero-title">OCEANEMBED</div>
+    <div class="brand-hero-sub">SEE THROUGH THE OCEAN USING ONLY SATELLITE SURFACE DATA (0–1000 M)</div>
+</div>
+""", unsafe_allow_html=True)
 
-st.markdown("---")
+if is_backend_live:
+    st.markdown(f"""
+    <div style="text-align: center; margin-bottom: 20px;">
+        <span class="status-badge" style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); color: #34D399;">
+            <span class="status-badge-pulse" style="background-color: #10B981; box-shadow: 0 0 8px #10B981;"></span> 🟢 FastAPI Connected (MODE: {backend_mode}) · Ministry of Earth Sciences (SIH26066)
+        </span>
+    </div>
+    """, unsafe_allow_html=True)
+else:
+    st.markdown("""
+    <div style="text-align: center; margin-bottom: 20px;">
+        <span class="status-badge" style="background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.3); color: #FBBF24;">
+            <span class="status-badge-pulse" style="background-color: #F59E0B; box-shadow: 0 0 8px #F59E0B;"></span> 🟡 Standalone Emulation Mode · Ministry of Earth Sciences (SIH26066)
+        </span>
+    </div>
+    """, unsafe_allow_html=True)
+
+st.markdown("<hr style='border: 0; height: 1px; background: rgba(255,255,255,0.15); margin-bottom: 24px;'>", unsafe_allow_html=True)
 
 # ----------------------------------------------------
 # Sidebar Controls

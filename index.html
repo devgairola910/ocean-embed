@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OceanEmbed — Subsurface Ocean AI Dashboard</title>
+  <meta name="description" content="OceanEmbed: Seeing through the ocean using only satellite surface data. Subsurface thermal reconstruction (0–1000m), physics-aware ViT-MAE pretraining, and Argo float validation.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="index.css?v=20261004">
+</head>
+<body>
+  <div class="app-viewport">
+    
+    <!-- Outer Application Card / Frame (matching reference image rounded window aesthetic) -->
+    <div class="window-frame">
+      
+      <!-- Underwater Photorealistic Background Layer -->
+      <div class="ocean-bg-layer" style="background-image: url('assets/underwater_bg.jpg');"></div>
+      
+      <!-- Water Surface Rays & Caustics Overlay -->
+      <div class="ocean-caustics-layer"></div>
+      
+      <!-- Animated Bubbles Container -->
+      <div class="bubbles-container" id="bubblesContainer"></div>
+      
+      <!-- Swimming Marine Life -->
+      <div class="ambient-marine-layer">
+        <img src="assets/yellow_fish.png" alt="Yellow Tang" class="swimming-fish fish-yellow">
+        <img src="assets/blue_fish.png" alt="Blue Tang" class="swimming-fish fish-blue">
+        <img src="assets/clownfish.png" alt="Clownfish Midground" class="swimming-fish fish-clown-ambient">
+      </div>
+
+      <!-- Waterline Refraction Beam Overlay (horizontal slice at mid-hero) -->
+      <div class="waterline-slice">
+        <div class="waterline-glow"></div>
+        <div class="waterline-wave"></div>
+      </div>
+
+      <!-- TOP NAVIGATION BAR -->
+      <header class="top-nav" id="mainHeader">
+        <div class="nav-left">
+          <a href="#" class="brand-logo" id="brandLogo">
+            <span class="brand-text">OceanEmbed</span>
+          </a>
+        </div>
+
+        <nav class="nav-center" aria-label="Main Navigation">
+          <ul class="nav-links">
+            <li><a href="#subsurface" class="nav-link active" data-tab="tab1">Subsurface</a></li>
+            <li><a href="#satellites" class="nav-link" data-tab="tab2">Satellites</a></li>
+            <li><a href="#transects" class="nav-link" data-tab="tab3">Transects</a></li>
+            <li><a href="#benchmarks" class="nav-link" data-tab="tab4">Benchmarks</a></li>
+            <li><a href="#architecture" class="nav-link" data-tab="tab5">Architecture</a></li>
+          </ul>
+        </nav>
+
+        <div class="nav-right">
+          <button class="pill-btn export-btn" id="exportDataBtn">Export Contract</button>
+        </div>
+      </header>
+
+      <!-- HERO SECTION -->
+      <main class="hero-section" id="heroSection">
+        
+        <!-- Submerged Master Typography Container -->
+        <div class="hero-title-wrapper">
+          
+          <!-- Clownfish positioned over the text letters 'A' and 'M' -->
+          <div class="hero-clownfish-container" id="heroClownfish">
+            <img src="assets/clownfish.png" alt="Tropical Clownfish" class="hero-clownfish-img">
+          </div>
+
+          <!-- The Split Waterline "OCEANEMBED" Text -->
+          <div class="split-text-container" id="heroTitleContainer">
+            <!-- Top half (above water) -->
+            <div class="split-text top-half" aria-hidden="true">
+              <span class="title-text" id="heroTitleTop">OCEANEMBED</span>
+            </div>
+            <!-- Dynamic Waterline divider highlight -->
+            <div class="text-waterline-divider"></div>
+            <!-- Bottom half (submerged under water with caustics and blue refraction) -->
+            <div class="split-text bottom-half">
+              <h1 class="title-text" id="heroTitleBottom">OCEANEMBED</h1>
+            </div>
+          </div>
+
+          <!-- Hero Subtitle -->
+          <p class="hero-subtitle" id="heroSubtitle">SEE THROUGH THE OCEAN USING ONLY SATELLITE SURFACE DATA</p>
+
+          <!-- CTA Pill Button -->
+          <div class="hero-cta-wrapper">
+            <button class="glass-pill-btn cta-btn" id="viewDashboardBtn">
+              <span>View Subsurface Intelligence</span>
+              <svg class="cta-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <polyline points="19 12 12 19 5 12"></polyline>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- LOWER FLOATING GLASSMORPHIC DASHBOARD -->
+        <section class="floating-dashboard-card" id="dashboardCard">
+          <div class="dashboard-grid">
+            
+            <!-- LEFT COLUMN: TODAY'S OCEAN INTELLIGENCE -->
+            <div class="analytics-col">
+              <div class="col-header">
+                <div class="header-titles">
+                  <h2 class="section-title" id="analyticsTitle">Today's Ocean Intelligence</h2>
+                  <p class="section-subtext" id="analyticsSubtext">Physics-constrained 3D temperature reconstruction (0–1000m) from multi-channel satellites.</p>
+                </div>
+                <div class="live-indicator">
+                  <span class="pulse-dot"></span>
+                  <span class="indicator-text" id="liveStatusText">Target: 15.0°N, 88.0°E</span>
+                </div>
+              </div>
+
+              <!-- 3 Top Metric Cards -->
+              <div class="metrics-cards-row">
+                <!-- Metric 1: Thermal Reconstruction RMSE -->
+                <div class="metric-glass-card" id="metricCard1">
+                  <div class="metric-top-row">
+                    <span class="metric-number" id="metricVal1">0.492</span>
+                    <span class="metric-unit" id="metricUnit1">°C RMSE</span>
+                  </div>
+                  <div class="metric-label" id="metricLabel1">Upper 500m Accuracy</div>
+                  <div class="metric-badge trend-up">
+                    <span class="trend-icon">↑</span> <span id="metricTrend1">+48% vs Climatology</span>
+                  </div>
+                </div>
+
+                <!-- Metric 2: Profile Correlation -->
+                <div class="metric-glass-card" id="metricCard2">
+                  <div class="metric-top-row">
+                    <span class="metric-number" id="metricVal2">0.846</span>
+                    <span class="metric-unit" id="metricUnit2">r</span>
+                  </div>
+                  <div class="metric-label" id="metricLabel2">Upper Stratification (r)</div>
+                  <div class="metric-badge trend-protect">
+                    <span class="trend-icon">🎯</span> <span id="metricTrend2">Target > 0.70 Exceeded</span>
+                  </div>
+                </div>
+
+                <!-- Metric 3: Thermocline Depth -->
+                <div class="metric-glass-card" id="metricCard3">
+                  <div class="metric-top-row">
+                    <span class="metric-number" id="metricVal3">62.4</span>
+                    <span class="metric-unit" id="metricUnit3">meters</span>
+                  </div>
+                  <div class="metric-label" id="metricLabel3">Thermocline Depth (Z_th)</div>
+                  <div class="metric-badge trend-zones">
+                    <span class="trend-icon">⚖️</span> <span id="metricTrend3">100% Physically Valid</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Bottom Sub-Cards Row (Subsurface Trend & Hotspots List) -->
+              <div class="analytics-subrow">
+                
+                <!-- Subcard 1: Subsurface Thermal Trend Chart -->
+                <div class="sub-glass-card annotations-card">
+                  <div class="subcard-header">
+                    <div class="subcard-title">Vertical Thermal Stratification</div>
+                    <div class="chart-controls">
+                      <div class="pill-tabs" role="tablist">
+                        <button class="pill-tab active" data-period="summer" id="tabSummer">
+                          <span class="tab-dot"></span> Summer SW
+                        </button>
+                        <button class="pill-tab" data-period="winter" id="tabWinter">
+                          <span class="tab-dot"></span> Winter NE
+                        </button>
+                        <button class="pill-tab" data-period="cyclone" id="tabCyclone">
+                          <span class="tab-dot"></span> Cyclone
+                        </button>
+                      </div>
+                      <div class="search-pill-box">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" stroke-width="2.5">
+                          <circle cx="11" cy="11" r="8"></circle>
+                          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                        </svg>
+                        <input type="text" id="hotspotSearchInput" placeholder="Preset..." aria-label="Search Hotspots">
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Glowing SVG Wave Chart Canvas Container -->
+                  <div class="chart-canvas-wrapper" id="chartWrapper">
+                    <svg class="trend-svg" id="trendSvg" viewBox="0 0 460 140" preserveAspectRatio="none">
+                      <defs>
+                        <linearGradient id="chartFillGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                          <stop offset="0%" stop-color="#38BDF8" stop-opacity="0.35" />
+                          <stop offset="60%" stop-color="#6FFFE9" stop-opacity="0.12" />
+                          <stop offset="100%" stop-color="#0284C7" stop-opacity="0.0" />
+                        </linearGradient>
+                        <linearGradient id="chartLineGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                          <stop offset="0%" stop-color="#6FFFE9" />
+                          <stop offset="35%" stop-color="#38BDF8" />
+                          <stop offset="70%" stop-color="#818CF8" />
+                          <stop offset="100%" stop-color="#F43F5E" />
+                        </linearGradient>
+                        <filter id="lineGlow" x="-20%" y="-20%" width="140%" height="140%">
+                          <feGaussianBlur stdDeviation="3" result="blur" />
+                          <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                        </filter>
+                      </defs>
+
+                      <!-- Background Grid Lines -->
+                      <line x1="0" y1="35" x2="460" y2="35" stroke="rgba(255,255,255,0.07)" stroke-dasharray="3 4" />
+                      <line x1="0" y1="75" x2="460" y2="75" stroke="rgba(255,255,255,0.07)" stroke-dasharray="3 4" />
+                      <line x1="0" y1="115" x2="460" y2="115" stroke="rgba(255,255,255,0.07)" stroke-dasharray="3 4" />
+
+                      <!-- Left Axis Annotations (Depth levels) -->
+                      <text x="10" y="38" class="chart-axis-label">0 m (SST)</text>
+                      <text x="10" y="80" class="chart-axis-label">100 m (Z_th)</text>
+                      <text x="10" y="120" class="chart-axis-label">500 m (Deep)</text>
+
+                      <!-- Filled Gradient Area Under Curve -->
+                      <path id="trendAreaPath" d="M 50 40 Q 110 45, 160 70 T 260 95 T 350 115 T 440 125 L 440 135 L 50 135 Z" fill="url(#chartFillGradient)" />
+
+                      <!-- Glowing Trend Curve Line -->
+                      <path id="trendLinePath" d="M 50 40 Q 110 45, 160 70 T 260 95 T 350 115 T 440 125" fill="none" stroke="url(#chartLineGradient)" stroke-width="3" filter="url(#lineGlow)" stroke-linecap="round" />
+
+                      <!-- Interactive Data Points -->
+                      <g id="chartPointsGroup">
+                        <circle cx="50" cy="40" r="5" class="chart-dot" data-label="Surface (0m): 29.4 °C (OSTIA SST)" />
+                        <circle cx="160" cy="70" r="4.5" class="chart-dot" data-label="Mixed Layer (50m): 26.2 °C" />
+                        <circle cx="260" cy="95" r="5" class="chart-dot pulse" data-label="Thermocline (100m): 18.4 °C" />
+                        <circle cx="350" cy="115" r="4.5" class="chart-dot" data-label="Upper Mesopelagic (300m): 11.2 °C" />
+                        <circle cx="440" cy="125" r="5" class="chart-dot" data-label="Deep Boundary (1000m): 4.5 °C" />
+                      </g>
+                    </svg>
+                    <!-- Floating Chart Tooltip -->
+                    <div class="chart-tooltip" id="chartTooltip">
+                      <span class="tooltip-title">Thermocline (100m)</span>
+                      <span class="tooltip-val">18.4 °C</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Subcard 2: Oceanic Feature Presets List -->
+                <div class="sub-glass-card hotspots-card">
+                  <div class="subcard-header">
+                    <div class="subcard-title">Oceanic Feature Presets</div>
+                    <span class="hotspot-badge" id="hotspotCountBadge">5 Regimes</span>
+                  </div>
+
+                  <div class="hotspots-list" id="hotspotsList">
+                    <!-- Item H-1 -->
+                    <div class="hotspot-item active" data-id="H-1" data-lat="15.0" data-lon="88.0" data-name="Bay of Bengal Cyclone Genesis" data-sst="29.8" data-zth="68.5" data-ohc="142 kJ/cm²">
+                      <div class="hotspot-left">
+                        <span class="hotspot-tag">H-1</span>
+                        <div class="hotspot-info">
+                          <span class="hotspot-name">Bay of Bengal Cyclone Genesis</span>
+                          <span class="hotspot-sub">15.0°N, 88.0°E · High OHC</span>
+                        </div>
+                      </div>
+                      <div class="hotspot-action-icon">→</div>
+                    </div>
+
+                    <!-- Item H-2 -->
+                    <div class="hotspot-item" data-id="H-2" data-lat="14.0" data-lon="55.0" data-name="Arabian Sea Coastal Upwelling" data-sst="25.4" data-zth="38.0" data-ohc="98 kJ/cm²">
+                      <div class="hotspot-left">
+                        <span class="hotspot-tag">H-2</span>
+                        <div class="hotspot-info">
+                          <span class="hotspot-name">Arabian Sea Coastal Upwelling</span>
+                          <span class="hotspot-sub">14.0°N, 55.0°E · Cold Plume</span>
+                        </div>
+                      </div>
+                      <div class="hotspot-action-icon">→</div>
+                    </div>
+
+                    <!-- Item H-3 -->
+                    <div class="hotspot-item" data-id="H-3" data-lat="19.0" data-lon="89.0" data-name="Northern BoB River Plume" data-sst="30.2" data-zth="42.0" data-ohc="124 kJ/cm²">
+                      <div class="hotspot-left">
+                        <span class="hotspot-tag">H-3</span>
+                        <div class="hotspot-info">
+                          <span class="hotspot-name">Northern BoB River Plume</span>
+                          <span class="hotspot-sub">19.0°N, 89.0°E · Low Salinity</span>
+                        </div>
+                      </div>
+                      <div class="hotspot-action-icon">→</div>
+                    </div>
+
+                    <!-- Item H-4 -->
+                    <div class="hotspot-item" data-id="H-4" data-lat="9.0" data-lon="75.0" data-name="SW Coast of India Upwelling" data-sst="27.1" data-zth="45.0" data-ohc="110 kJ/cm²">
+                      <div class="hotspot-left">
+                        <span class="hotspot-tag">H-4</span>
+                        <div class="hotspot-info">
+                          <span class="hotspot-name">SW Coast of India Upwelling</span>
+                          <span class="hotspot-sub">9.0°N, 75.0°E · Marine Ecology</span>
+                        </div>
+                      </div>
+                      <div class="hotspot-action-icon">→</div>
+                    </div>
+
+                    <!-- Item H-5 -->
+                    <div class="hotspot-item" data-id="H-5" data-lat="2.5" data-lon="85.0" data-name="Equatorial Warm Pool" data-sst="30.5" data-zth="82.0" data-ohc="155 kJ/cm²">
+                      <div class="hotspot-left">
+                        <span class="hotspot-tag">H-5</span>
+                        <div class="hotspot-info">
+                          <span class="hotspot-name">Equatorial Warm Pool</span>
+                          <span class="hotspot-sub">2.5°N, 85.0°E · Wyrtki Jets</span>
+                        </div>
+                      </div>
+                      <div class="hotspot-action-icon">→</div>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+            <!-- RIGHT COLUMN: HEATMAP & OCEAN BASIN MAP -->
+            <div class="heatmap-col">
+              <div class="col-header">
+                <div class="header-titles">
+                  <h2 class="section-title">North Indian Ocean Heatmap</h2>
+                  <p class="section-subtext">Spatial Domain: 0°–25°N, 40°–100°E (0.25° Grid)</p>
+                </div>
+                <button class="pill-btn-sm view-map-btn" id="viewFullMapBtn">
+                  <span>View Full Map</span>
+                </button>
+              </div>
+
+              <!-- World Map Container with Vector Outlines & Pulsating Markers -->
+              <div class="world-map-container" id="worldMapContainer">
+                <svg class="world-map-svg" viewBox="0 0 800 450" preserveAspectRatio="xMidYMid meet" id="worldMapSvg">
+                  <defs>
+                    <filter id="dotGlow" x="-50%" y="-50%" width="200%" height="200%">
+                      <feGaussianBlur stdDeviation="4" result="glow" />
+                      <feMerge>
+                        <feMergeNode in="glow" />
+                        <feMergeNode in="SourceGraphic" />
+                      </feMerge>
+                    </filter>
+                    
+                    <linearGradient id="landGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.95" />
+                      <stop offset="100%" stop-color="#E2E8F0" stop-opacity="0.85" />
+                    </linearGradient>
+
+                    <linearGradient id="oceanShimmer" x1="0%" y1="0%" x2="0%" y2="100%">
+                      <stop offset="0%" stop-color="rgba(30, 80, 140, 0.3)" />
+                      <stop offset="100%" stop-color="rgba(10, 35, 75, 0.4)" />
+                    </linearGradient>
+                  </defs>
+
+                  <!-- Ocean Grid Background Lines -->
+                  <rect width="800" height="450" fill="url(#oceanShimmer)" rx="16" />
+                  <path d="M 0 112.5 L 800 112.5 M 0 225 L 800 225 M 0 337.5 L 800 337.5" stroke="rgba(255,255,255,0.06)" stroke-width="1" stroke-dasharray="4 6" />
+                  <path d="M 200 0 L 200 450 M 400 0 L 400 450 M 600 0 L 600 450" stroke="rgba(255,255,255,0.06)" stroke-width="1" stroke-dasharray="4 6" />
+
+                  <!-- Stylized World Landmass Vector Paths -->
+                  <g class="world-landmasses" fill="url(#landGradient)" stroke="rgba(255,255,255,0.4)" stroke-width="0.8">
+                    <!-- North America -->
+                    <path d="M 120 70 Q 150 65 190 75 Q 220 90 235 125 Q 230 155 195 180 Q 170 195 155 230 Q 140 215 130 180 Q 105 140 95 110 Z" class="land-path" />
+                    <!-- Greenland -->
+                    <path d="M 280 40 Q 310 35 320 60 Q 305 80 275 75 Z" class="land-path" />
+                    <!-- South America -->
+                    <path d="M 195 240 Q 235 245 260 280 Q 275 330 245 390 Q 220 420 205 400 Q 190 340 185 285 Z" class="land-path" />
+                    <!-- Europe -->
+                    <path d="M 370 80 Q 420 70 450 95 Q 460 120 425 145 Q 390 140 375 115 Z" class="land-path" />
+                    <!-- Africa -->
+                    <path d="M 375 160 Q 440 155 470 200 Q 480 270 445 340 Q 410 375 390 340 Q 360 270 365 210 Z" class="land-path" />
+                    <!-- Madagascar -->
+                    <path d="M 495 300 Q 505 300 500 335 Q 490 335 495 300 Z" class="land-path" />
+                    <!-- Eurasia / Asia -->
+                    <path d="M 450 85 Q 560 65 680 80 Q 730 110 710 160 Q 660 190 620 200 Q 570 220 540 260 Q 510 210 470 170 Q 460 120 450 85 Z" class="land-path" />
+                    <!-- India Subcontinent (Highlighted as domain of MoES) -->
+                    <path d="M 520 200 Q 550 205 565 245 Q 545 280 535 275 Q 515 235 520 200 Z" class="land-path india-highlight" />
+                    <!-- SE Asia & Japan / Archipelago -->
+                    <path d="M 640 180 Q 670 180 660 220 Q 640 250 620 230 Z" class="land-path" />
+                    <path d="M 690 120 Q 715 130 705 160 Q 685 150 690 120 Z" class="land-path" />
+                    <path d="M 610 260 Q 650 260 670 290 Q 630 300 610 260 Z" class="land-path" />
+                    <!-- Australia -->
+                    <path d="M 640 310 Q 710 305 730 350 Q 700 400 650 390 Q 620 360 640 310 Z" class="land-path" />
+                  </g>
+
+                  <!-- Indian Ocean Domain Box -->
+                  <rect x="470" y="195" width="135" height="95" rx="8" fill="none" stroke="#6FFFE9" stroke-width="1.5" stroke-dasharray="4 4" opacity="0.8" />
+                  <text x="474" y="210" font-size="8" fill="#6FFFE9" font-family="Outfit" font-weight="700">MoES NIO Grid</text>
+
+                  <!-- Glowing Pulsating Hotspot Markers for Oceanic Presets -->
+                  <g class="map-hotspots-group" id="mapHotspotsGroup">
+                    
+                    <!-- H-1: Bay of Bengal Cyclone Genesis (15°N, 88°E) -->
+                    <g class="map-hotspot-pin active" data-id="H-1" transform="translate(560, 240)">
+                      <circle class="pulse-ring ring-1" r="16" fill="rgba(244, 63, 94, 0.25)" />
+                      <circle class="pulse-ring ring-2" r="10" fill="rgba(244, 63, 94, 0.45)" />
+                      <circle class="pin-core" r="5.5" fill="#F43F5E" filter="url(#dotGlow)" />
+                      <text x="8" y="-6" class="pin-label">H-1 (BoB)</text>
+                    </g>
+
+                    <!-- H-2: Arabian Sea Coastal Upwelling (14°N, 55°E) -->
+                    <g class="map-hotspot-pin" data-id="H-2" transform="translate(490, 235)">
+                      <circle class="pulse-ring ring-1" r="14" fill="rgba(56, 189, 248, 0.25)" />
+                      <circle class="pulse-ring ring-2" r="9" fill="rgba(56, 189, 248, 0.45)" />
+                      <circle class="pin-core" r="5" fill="#38BDF8" filter="url(#dotGlow)" />
+                      <text x="8" y="-6" class="pin-label">H-2 (AS)</text>
+                    </g>
+
+                    <!-- H-3: Northern BoB River Plume (19°N, 89°E) -->
+                    <g class="map-hotspot-pin" data-id="H-3" transform="translate(565, 218)">
+                      <circle class="pulse-ring ring-1" r="12" fill="rgba(111, 255, 233, 0.25)" />
+                      <circle class="pulse-ring ring-2" r="8" fill="rgba(111, 255, 233, 0.45)" />
+                      <circle class="pin-core" r="4.5" fill="#6FFFE9" filter="url(#dotGlow)" />
+                      <text x="7" y="-5" class="pin-label">H-3 (Plume)</text>
+                    </g>
+
+                    <!-- H-4: SW Coast of India Upwelling (9°N, 75°E) -->
+                    <g class="map-hotspot-pin" data-id="H-4" transform="translate(535, 260)">
+                      <circle class="pulse-ring ring-1" r="12" fill="rgba(16, 185, 129, 0.25)" />
+                      <circle class="pulse-ring ring-2" r="8" fill="rgba(16, 185, 129, 0.45)" />
+                      <circle class="pin-core" r="4.5" fill="#10B981" filter="url(#dotGlow)" />
+                      <text x="7" y="-5" class="pin-label">H-4 (SW)</text>
+                    </g>
+
+                    <!-- H-5: Equatorial Warm Pool (2.5°N, 85°E) -->
+                    <g class="map-hotspot-pin" data-id="H-5" transform="translate(555, 280)">
+                      <circle class="pulse-ring ring-1" r="14" fill="rgba(245, 158, 11, 0.25)" />
+                      <circle class="pulse-ring ring-2" r="9" fill="rgba(245, 158, 11, 0.45)" />
+                      <circle class="pin-core" r="5" fill="#F59E0B" filter="url(#dotGlow)" />
+                      <text x="8" y="-6" class="pin-label">H-5 (Equator)</text>
+                    </g>
+
+                    <!-- In-Situ Argo Float Marker Example -->
+                    <g class="map-hotspot-pin" data-id="ARGO-1" transform="translate(525, 245)">
+                      <polygon points="0,-6 6,0 0,6 -6,0" fill="#10B981" stroke="#FFFFFF" stroke-width="1.2" />
+                      <text x="8" y="2" class="pin-label" fill="#10B981" font-size="8">Argo #2901842</text>
+                    </g>
+
+                  </g>
+                </svg>
+
+                <!-- Floating Interactive Map Popover -->
+                <div class="map-live-popover" id="mapPopover">
+                  <div class="popover-header">
+                    <span class="popover-tag" id="popoverTag">H-1</span>
+                    <strong class="popover-name" id="popoverName">Bay of Bengal Cyclone Genesis</strong>
+                  </div>
+                  <div class="popover-stats">
+                    <div>SST: <span class="popover-stat-highlight" id="popoverSst">29.8 °C</span></div>
+                    <div>Thermocline (Z_th): <span class="popover-stat-highlight" id="popoverZth">68.5 m</span></div>
+                    <div>OHC: <span class="popover-stat-highlight" id="popoverOhc">142 kJ/cm²</span></div>
+                  </div>
+                  <button class="popover-btn" id="popoverActionBtn">Inspect Vertical Profile ↗</button>
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+        </section>
+
+      </main>
+
+      <!-- SCIENTIFIC EXTENSION DRAWER: OCEANEMBED 5 TABS -->
+      <section class="deep-dive-drawer open" id="deepDiveDrawer">
+        <div class="drawer-handle" id="drawerHandle">
+          <div class="handle-bar"></div>
+          <span class="handle-text">🔬 Scientific Deep-Dive: 0–1000m Subsurface AI, Satellites, 2D Transects & Benchmarks</span>
+        </div>
+
+        <div class="drawer-content">
+          
+          <!-- TAB NAV PILLS INSIDE DRAWER -->
+          <div class="drawer-tab-nav">
+            <button class="d-tab-btn active" data-dtab="tab-profile">📈 1. Subsurface Profile & Argo Match</button>
+            <button class="d-tab-btn" data-dtab="tab-satellite">🛰️ 2. Satellite Inputs (7 Channels)</button>
+            <button class="d-tab-btn" data-dtab="tab-transect">🗺️ 3. 2D Vertical Transect</button>
+            <button class="d-tab-btn" data-dtab="tab-benchmarks">📊 4. Scientific Benchmarks</button>
+            <button class="d-tab-btn" data-dtab="tab-architecture">🧠 5. Architecture & Physics</button>
+          </div>
+
+          <!-- TAB 1 CONTENT: Subsurface Profile & In-Situ Validation -->
+          <div class="drawer-tab-pane active" id="pane-tab-profile">
+            <div class="drawer-grid">
+              
+              <!-- 3D Subsurface Profile Chart -->
+              <div class="drawer-col">
+                <div class="drawer-col-title">
+                  <span>Subsurface Temperature Profile (0–1000 m) at (15.0°N, 88.0°E)</span>
+                  <span class="badge-ai">OceanEmbed vs GLORYS vs Argo</span>
+                </div>
+                <div class="profile-chart-box">
+                  <canvas id="profileCanvas" width="480" height="300"></canvas>
+                </div>
+                <div class="profile-metrics-mini">
+                  <div class="p-metric">
+                    <span class="p-lbl">Pearson Corr (r)</span>
+                    <span class="p-val" style="color:#6FFFE9;">0.846</span>
+                  </div>
+                  <div class="p-metric">
+                    <span class="p-lbl">RMSE (0–1000m)</span>
+                    <span class="p-val" style="color:#38BDF8;">0.492 °C</span>
+                  </div>
+                  <div class="p-metric">
+                    <span class="p-lbl">Thermocline (Z_th)</span>
+                    <span class="p-val" style="color:#F43F5E;">68.5 m</span>
+                  </div>
+                  <div class="p-metric">
+                    <span class="p-lbl">Physical Monotonicity</span>
+                    <span class="p-val" style="color:#10B981;">100.0%</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Thermal Gradient & In-Situ Controls -->
+              <div class="drawer-col">
+                <div class="drawer-col-title">
+                  <span>Observation Regime & In-Situ Argo Float Matching</span>
+                </div>
+                <div class="regime-selector">
+                  <label for="seasonSelect">Monsoonal Regime:</label>
+                  <select id="seasonSelect" class="styled-select">
+                    <option value="summer">☀️ Summer Southwest Monsoon (Peak Stratification & High OHC)</option>
+                    <option value="winter">❄️ Winter Northeast Monsoon (Arabian Sea Cooling & Deep Mixing)</option>
+                    <option value="pre_cyclone">🌀 Pre-Monsoon Cyclone Genesis Period (High Heat Potential)</option>
+                    <option value="mhw">🔥 Marine Heatwave (MHW) Extreme Thermal Anomaly Event</option>
+                  </select>
+                </div>
+
+                <div class="satellite-channels-grid">
+                  <div class="channel-chip">
+                    <span class="ch-name">1. OSTIA SST</span>
+                    <span class="ch-val" id="chSst">29.8 °C</span>
+                  </div>
+                  <div class="channel-chip">
+                    <span class="ch-name">2. SMAP SSS</span>
+                    <span class="ch-val" id="chSss">33.2 PSU</span>
+                  </div>
+                  <div class="channel-chip">
+                    <span class="ch-name">3. DUACS SLA</span>
+                    <span class="ch-val" id="chSla">+18.5 cm</span>
+                  </div>
+                  <div class="channel-chip">
+                    <span class="ch-name">4 & 5. OSCAR Currents</span>
+                    <span class="ch-val" id="chCurr">0.52 m/s</span>
+                  </div>
+                  <div class="channel-chip">
+                    <span class="ch-name">6 & 7. CCMP Winds</span>
+                    <span class="ch-val" id="chWind">9.4 m/s</span>
+                  </div>
+                  <div class="channel-chip">
+                    <span class="ch-name">In-Situ Float</span>
+                    <span class="ch-val" id="chArgo">Argo #2901842</span>
+                  </div>
+                </div>
+
+                <div class="api-status-banner" id="apiStatusBanner">
+                  <span class="api-dot live"></span>
+                  <span>FastAPI Backend Active: <code>http://localhost:8000</code> · Zero Latency Embeddings</span>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- TAB 2 CONTENT: Satellite Surface Inputs (7 Channels) -->
+          <div class="drawer-tab-pane" id="pane-tab-satellite">
+            <div class="sat-grid-6">
+              <div class="sat-card">
+                <div class="sat-title">1. SST — Sea Surface Temp (OSTIA)</div>
+                <div class="sat-map-placeholder thermal-gradient"></div>
+                <div class="sat-meta">Range: 24.5°C to 31.2°C · Res: 0.25°</div>
+              </div>
+              <div class="sat-card">
+                <div class="sat-title">2. SSS — Sea Surface Salinity (SMAP)</div>
+                <div class="sat-map-placeholder salinity-gradient"></div>
+                <div class="sat-meta">Range: 31.0 to 36.8 PSU · BoB Fresh Plume</div>
+              </div>
+              <div class="sat-card">
+                <div class="sat-title">3. SLA — Sea Level Anomaly (DUACS)</div>
+                <div class="sat-map-placeholder sla-gradient"></div>
+                <div class="sat-meta">Range: -25 cm to +30 cm · Mesoscale Eddies</div>
+              </div>
+              <div class="sat-card">
+                <div class="sat-title">4 & 5. Surface Currents (OSCAR)</div>
+                <div class="sat-map-placeholder currents-gradient"></div>
+                <div class="sat-meta">Zonal (u) & Meridional (v) · Geostrophic Flow</div>
+              </div>
+              <div class="sat-card">
+                <div class="sat-title">6 & 7. 10m Wind Speed (CCMP)</div>
+                <div class="sat-map-placeholder winds-gradient"></div>
+                <div class="sat-meta">Range: 2.0 to 18.5 m/s · Monsoon Forcing</div>
+              </div>
+              <div class="sat-card">
+                <div class="sat-title">Subsurface MHW Anomaly (100m)</div>
+                <div class="sat-map-placeholder mhw-gradient"></div>
+                <div class="sat-meta">Marine Heatwave Index · Upper Heat Content</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB 3 CONTENT: 2D Vertical Transect Cross-Section -->
+          <div class="drawer-tab-pane" id="pane-tab-transect">
+            <div class="transect-box">
+              <div class="transect-header">
+                <strong>Zonal Transect at Lat 15.00°N (Bay of Bengal & Arabian Sea across 40°E to 100°E)</strong>
+                <span class="badge-ai">Thermocline Layer Overlay (Z_th)</span>
+              </div>
+              <div class="transect-contour-viz">
+                <!-- Visualized Contour depth profile -->
+                <div class="contour-layer top-mix"><span>0–30 m Mixed Layer (Isothermal > 28°C)</span></div>
+                <div class="contour-layer thermocline-zone"><span>Main Thermocline (20°C Isotherm / Rapid Drop)</span></div>
+                <div class="contour-layer deep-ocean"><span>200–1000 m Deep Abyss (&lt; 10°C)</span></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB 4 CONTENT: Scientific Benchmarks -->
+          <div class="drawer-tab-pane" id="pane-tab-benchmarks">
+            <table class="benchmark-table">
+              <thead>
+                <tr>
+                  <th>Model Architecture</th>
+                  <th>Pretraining Strategy</th>
+                  <th>Physics Stability Loss</th>
+                  <th>Upper 500m Correlation ($r$)</th>
+                  <th>Upper 500m RMSE (°C)</th>
+                  <th>Physical Validity (% monotonic)</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Climatology Baseline (Naive)</td>
+                  <td>None</td>
+                  <td>None</td>
+                  <td>0.382</td>
+                  <td>1.482 °C</td>
+                  <td>100.0%</td>
+                </tr>
+                <tr>
+                  <td>Direct CNN Regression</td>
+                  <td>None</td>
+                  <td>None</td>
+                  <td>0.684</td>
+                  <td>0.941 °C</td>
+                  <td>89.2% (10.8% inversions)</td>
+                </tr>
+                <tr class="highlight-row">
+                  <td><strong>OceanEmbed (Ours)</strong></td>
+                  <td><strong>ViT-MAE (75% Masked)</strong></td>
+                  <td><strong>Differentiable Hinge Loss ($\mathcal{L}_{stab}$)</strong></td>
+                  <td><strong style="color:#6FFFE9;">0.846</strong></td>
+                  <td><strong style="color:#38BDF8;">0.492 °C</strong></td>
+                  <td><strong style="color:#10B981;">100.0% (0 inversions)</strong></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- TAB 5 CONTENT: Architecture & Physics -->
+          <div class="drawer-tab-pane" id="pane-tab-architecture">
+            <div class="arch-grid">
+              <div class="arch-card">
+                <h4>🏛️ Two-Stage Deep Learning Architecture</h4>
+                <p>1. <strong>Stage B (Self-Supervised ViT-MAE):</strong> 75% patch masking on multi-channel satellite surface inputs with 2D sinusoidal geospatial embeddings.</p>
+                <p>2. <strong>Stage C (Cross-Attention Depth Decoder):</strong> 15 learned depth query tokens decode surface latents into 15 discrete levels from 0 to 1000 meters.</p>
+              </div>
+              <div class="arch-card">
+                <h4>⚖️ Differentiable Gravitational Stability Loss</h4>
+                <p>$$\mathcal{L}_{stab} = \frac{1}{N} \sum_{z} \max\left(0, T(z_{k+1}) - T(z_k) - \epsilon\right)^2$$</p>
+                <p>Penalizes unstable density inversions at training time, mathematically ensuring 100% monotonic temperature profiles in the open ocean.</p>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+    </div>
+  </div>
+
+  <!-- RAW DATA CONTRACT EXPORT MODAL -->
+  <div class="modal-overlay" id="exportModal">
+    <div class="modal-glass-card modal-large">
+      <button class="modal-close" id="closeExportModal">&times;</button>
+      <div class="modal-header">
+        <h3 class="modal-title">JSON Data Contract (design.md §7.3)</h3>
+        <p class="modal-subtitle">Direct REST / JSON Schema contract for subsurface profile inference.</p>
+      </div>
+      <div class="json-code-box">
+        <pre id="jsonPreviewCode"><code>{
+  "date": "2022-07-15",
+  "lat": 15.0,
+  "lon": 88.0,
+  "surface_inputs": {
+    "sst_c": 29.8,
+    "sss_psu": 33.2,
+    "sla_m": 0.185,
+    "current_u_ms": 0.42,
+    "current_v_ms": 0.31,
+    "wind_u10_ms": 7.4,
+    "wind_v10_ms": 5.8
+  },
+  "predicted_profile": [29.8, 29.6, 29.1, 28.5, 26.2, 22.4, 18.4, 15.6, 13.5, 11.2, 9.8, 8.7, 7.2, 5.8, 4.5],
+  "glorys_profile": [29.7, 29.5, 29.0, 28.3, 26.0, 22.1, 18.1, 15.3, 13.2, 11.0, 9.5, 8.5, 7.0, 5.7, 4.4],
+  "argo_profile": [29.8, 29.5, 29.1, 28.4, 26.1, 22.3, 18.2, 15.4, 13.3, 11.1, 9.6, 8.6, 7.1, 5.7, 4.5],
+  "thermocline_depth_m": 68.5,
+  "skill": {
+    "correlation": 0.846,
+    "rmse": 0.492,
+    "bias": -0.04
+  }
+}</code></pre>
+      </div>
+      <div style="display:flex; justify-content:flex-end; gap:12px; margin-top:16px;">
+        <button class="modal-submit-btn" id="downloadJsonBtn">📥 Download JSON Payload</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
