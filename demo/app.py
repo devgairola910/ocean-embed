@@ -32,13 +32,13 @@ from src.data.grid import OceanGrid
 
 # Page configuration
 st.set_page_config(
-    page_title="SeaGuard & OceanEmbed — Subsurface Ocean Intelligence",
+    page_title="OceanEmbed — Subsurface Ocean AI Dashboard",
     page_icon="🌊",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="collapsed"
 )
 
-# High-Grade UI Theme & CSS
+# Clean Modern CSS
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&family=Inter:wght@400;500;600;700&display=swap');
@@ -52,34 +52,16 @@ st.markdown("""
         color: #FFFFFF;
     }
 
-    .hero-banner {
-        text-align: center;
-        padding: 24px 20px 10px;
-        position: relative;
+    .block-container {
+        padding-top: 0.5rem;
+        padding-bottom: 2rem;
+        padding-left: 1rem;
+        padding-right: 1rem;
+        max-width: 100%;
     }
 
-    .brand-hero-title {
-        font-family: 'Outfit', sans-serif;
-        font-size: clamp(3.5rem, 6vw, 5.2rem);
-        font-weight: 900;
-        letter-spacing: 0.05em;
-        line-height: 0.95;
-        text-transform: uppercase;
-        background: linear-gradient(180deg, #FFFFFF 0%, #D4EFFF 50%, #38BDF8 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        margin-bottom: 8px;
-        filter: drop-shadow(0 4px 15px rgba(0, 0, 0, 0.4));
-    }
-
-    .brand-hero-sub {
-        font-family: 'Outfit', sans-serif;
-        font-size: 1.15rem;
-        font-weight: 600;
-        letter-spacing: 0.35em;
-        color: rgba(220, 245, 255, 0.9);
-        text-transform: uppercase;
-        margin-bottom: 20px;
+    header[data-testid="stHeader"] {
+        background: transparent !important;
     }
 
     .status-badge {
@@ -99,110 +81,46 @@ st.markdown("""
         margin-right: 8px;
         display: inline-block;
     }
-    
-    .glass-card {
-        background: rgba(14, 42, 77, 0.68);
-        border: 1.2px solid rgba(255, 255, 255, 0.18);
-        border-radius: 16px;
-        padding: 16px 20px;
-        margin-bottom: 15px;
-        box-shadow: 0 12px 30px rgba(0, 8, 24, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.2);
-        backdrop-filter: blur(20px);
-        -webkit-backdrop-filter: blur(20px);
-    }
-    
-    .metric-value-large {
-        font-family: 'Outfit', sans-serif;
-        font-size: 1.9rem;
-        font-weight: 800;
-        color: #F8FAFC;
-        margin-top: 2px;
-    }
-    
-    .metric-label-muted {
-        font-size: 0.82rem;
-        color: rgba(200, 225, 250, 0.8);
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
-    
-    .stTabs [data-baseweb="tab-list"] {
-        gap: 10px;
-        background-color: rgba(10, 30, 60, 0.7);
-        padding: 8px;
-        border-radius: 14px;
-        border: 1.2px solid rgba(255, 255, 255, 0.12);
-        backdrop-filter: blur(14px);
-    }
-    
-    .stTabs [data-baseweb="tab"] {
-        font-size: 0.95rem;
-        font-weight: 600;
-        padding: 9px 20px;
-        border-radius: 10px;
-        color: rgba(255, 255, 255, 0.75);
-    }
-    
-    .stTabs [aria-selected="true"] {
-        background-color: rgba(255, 255, 255, 0.16) !important;
-        color: #6FFFE9 !important;
-        border: 1px solid rgba(111, 255, 233, 0.4) !important;
-        box-shadow: 0 0 15px rgba(111, 255, 233, 0.2);
-    }
 </style>
 """, unsafe_allow_html=True)
 
+# ----------------------------------------------------
+# 1. Primary Interactive Underwater Ocean AI View
+# ----------------------------------------------------
+standalone_html_path = os.path.join(os.path.dirname(__file__), "standalone_view.html")
+if os.path.exists(standalone_html_path):
+    with open(standalone_html_path, "r", encoding="utf-8") as f:
+        standalone_html = f.read()
+    st.components.v1.html(standalone_html, height=1050, scrolling=True)
 
 @st.cache_resource
 def get_data_provider():
     grid = OceanGrid(lat_min=0.0, lat_max=25.0, lon_min=40.0, lon_max=100.0, resolution=0.25)
     return DemoDataProvider(grid=grid, seed=42)
 
-
 provider = get_data_provider()
 is_backend_live, backend_status, backend_mode = check_backend_health()
 
 # ----------------------------------------------------
-# Top Navigation & Header
+# 2. Advanced Python Diagnostics & Plotly Suite Expander
 # ----------------------------------------------------
-st.markdown("""
-<div class="hero-banner">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-        <div style="font-family: 'Outfit'; font-size: 1.8rem; font-weight: 800; color: #FFFFFF; letter-spacing: -0.02em;">
-            🌊 OceanEmbed
+with st.expander("🔬 Deep Streamlit Python Data Inspector & Interactive Plotly Charts", expanded=False):
+    if is_backend_live:
+        st.markdown(f"""
+        <div style="text-align: center; margin-bottom: 15px;">
+            <span class="status-badge" style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); color: #34D399;">
+                <span class="status-badge-pulse" style="background-color: #10B981; box-shadow: 0 0 8px #10B981;"></span> 🟢 FastAPI Connected (MODE: {backend_mode})
+            </span>
         </div>
-        <div>
-            <span style="color: rgba(255,255,255,0.85); font-size: 0.9rem; margin-right: 20px; font-weight: 500;">Subsurface Profile</span>
-            <span style="color: rgba(255,255,255,0.85); font-size: 0.9rem; margin-right: 20px; font-weight: 500;">Satellite Inputs</span>
-            <span style="color: rgba(255,255,255,0.85); font-size: 0.9rem; margin-right: 20px; font-weight: 500;">2D Transects</span>
-            <span style="color: rgba(255,255,255,0.85); font-size: 0.9rem; margin-right: 20px; font-weight: 500;">Benchmarks</span>
-            <span style="color: rgba(255,255,255,0.85); font-size: 0.9rem; margin-right: 20px; font-weight: 500;">Architecture & Physics</span>
+        """, unsafe_allow_html=True)
+    else:
+        st.markdown("""
+        <div style="text-align: center; margin-bottom: 15px;">
+            <span class="status-badge" style="background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.3); color: #FBBF24;">
+                <span class="status-badge-pulse" style="background-color: #F59E0B; box-shadow: 0 0 8px #F59E0B;"></span> 🟡 Standalone Emulation Mode
+            </span>
         </div>
-    </div>
-    <div class="brand-hero-title">OCEANEMBED</div>
-    <div class="brand-hero-sub">SEE THROUGH THE OCEAN USING ONLY SATELLITE SURFACE DATA (0–1000 M)</div>
-</div>
-""", unsafe_allow_html=True)
-
-if is_backend_live:
-    st.markdown(f"""
-    <div style="text-align: center; margin-bottom: 20px;">
-        <span class="status-badge" style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); color: #34D399;">
-            <span class="status-badge-pulse" style="background-color: #10B981; box-shadow: 0 0 8px #10B981;"></span> 🟢 FastAPI Connected (MODE: {backend_mode}) · Ministry of Earth Sciences (SIH26066)
-        </span>
-    </div>
-    """, unsafe_allow_html=True)
-else:
-    st.markdown("""
-    <div style="text-align: center; margin-bottom: 20px;">
-        <span class="status-badge" style="background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.3); color: #FBBF24;">
-            <span class="status-badge-pulse" style="background-color: #F59E0B; box-shadow: 0 0 8px #F59E0B;"></span> 🟡 Standalone Emulation Mode · Ministry of Earth Sciences (SIH26066)
-        </span>
-    </div>
-    """, unsafe_allow_html=True)
-
-st.markdown("<hr style='border: 0; height: 1px; background: rgba(255,255,255,0.15); margin-bottom: 24px;'>", unsafe_allow_html=True)
+        """, unsafe_allow_html=True)
 
 # ----------------------------------------------------
 # Sidebar Controls
@@ -671,7 +589,7 @@ with tab3:
             thermo_slice_oe = oe_thermo[:, t_lon_idx]
             slice_title = f"Meridional Transect at Lon {lons[t_lon_idx]:.2f}°E"
 
-        st.markdown("""
+        st.markdown(r"""
         **Physical Signatures in View:**
         - Mixed Layer (0–30 m isothermal top)
         - Main Thermocline ($20^\circ\text{C}$ isotherm / white line)
