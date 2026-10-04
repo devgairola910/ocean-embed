@@ -10,8 +10,8 @@ import numpy as np
 
 # Standard depth levels in meters defined in PRD & Architecture
 STANDARD_DEPTH_LEVELS: List[float] = [
-    0.0, 10.0, 20.0, 30.0, 50.0, 75.0, 100.0, 125.0, 150.0, 200.0,
-    250.0, 300.0, 400.0, 600.0, 1000.0
+    0.0, 5.0, 10.0, 20.0, 30.0, 50.0, 75.0, 100.0, 125.0, 150.0,
+    200.0, 300.0, 500.0, 700.0, 1000.0
 ]
 
 # Standard 7 surface input channels

@@ -685,27 +685,41 @@
               <!-- Left: File Upload & Manual Inputs -->
               <div class="upload-panel">
                 <div class="drawer-col-title">
-                  <span>🛰️ Step 1: Upload File or Set Manual Satellite Parameters</span>
+                  <span>🛰️ Step 1: Upload Satellite Image (JPEG / JPG / PNG) or Data File</span>
                 </div>
                 
                 <!-- Drag & Drop Zone -->
                 <div class="upload-dropzone" id="uploadDropzone">
-                  <div class="dropzone-icon">📁</div>
+                  <div class="dropzone-icon">🛰️</div>
                   <div class="dropzone-text">
-                    <strong>Drag & drop satellite dataset here</strong>
-                    <span>or click to browse from your device</span>
+                    <strong>Drag & drop satellite image or dataset here</strong>
+                    <span>Supports JPEG, JPG, PNG thermal images or NetCDF/CSV/JSON data</span>
                   </div>
                   <div class="file-badges">
+                    <span class="f-badge">JPEG / JPG (.jpg, .jpeg)</span>
+                    <span class="f-badge">PNG (.png)</span>
                     <span class="f-badge">NetCDF (.nc)</span>
                     <span class="f-badge">CSV (.csv)</span>
-                    <span class="f-badge">JSON (.json)</span>
                   </div>
-                  <input type="file" id="satelliteFileInput" class="hidden-file-input" accept=".csv,.json,.nc,.zarr">
+                  <input type="file" id="satelliteFileInput" class="hidden-file-input" accept=".jpg,.jpeg,.png,.csv,.json,.nc,.zarr">
                 </div>
 
-                <div style="display:flex; justify-content:space-between; align-items:center; margin: 12px 0 16px;">
-                  <span style="font-size:0.8rem; color:rgba(255,255,255,0.6);">Need a template?</span>
-                  <button type="button" class="link-btn" id="loadSampleCsvBtn">📥 Load Pre-filled Cyclone Sample</button>
+                <!-- Satellite Image Optical Preview Box (When Image Uploaded) -->
+                <div class="sat-image-preview-container" id="satImagePreviewBox" style="display:block; margin-top: 14px;">
+                  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 6px;">
+                    <span style="font-size:0.8rem; font-weight:600; color:#38BDF8;">🗺️ Optical Satellite Heatmap View (Click to Inspect Point):</span>
+                    <span id="activeImageLabel" style="font-size:0.75rem; color:#6FFFE9;">OSTIA Thermal IR (.jpg)</span>
+                  </div>
+                  <div class="image-canvas-wrapper" style="position:relative; background:#020b18; border-radius:10px; overflow:hidden; border:1px solid rgba(255,255,255,0.15);">
+                    <canvas id="satelliteImageCanvas" width="460" height="220" style="display:block; width:100%; height:auto; cursor:crosshair;"></canvas>
+                    <div id="imageHoverCoords" style="position:absolute; bottom:6px; right:8px; font-size:0.72rem; background:rgba(0,0,0,0.7); padding:2px 8px; border-radius:4px; color:#FFFFFF; pointer-events:none;">Coordinates: 15.0°N, 88.0°E | SST: 29.8°C</div>
+                  </div>
+                </div>
+
+                <div style="display:flex; justify-content:space-between; align-items:center; margin: 12px 0 14px; flex-wrap:wrap; gap:8px;">
+                  <button type="button" class="link-btn" id="loadSampleSstJpgBtn">🛰️ Sample Satellite JPEG (OSTIA)</button>
+                  <button type="button" class="link-btn" id="loadSampleCycloneJpgBtn">🌀 Cyclone Satellite JPEG</button>
+                  <button type="button" class="link-btn" id="loadSampleCsvBtn">📥 CSV Table</button>
                 </div>
 
                 <!-- Scenario Quick Presets -->
@@ -792,6 +806,9 @@
               <div class="results-panel">
                 <div class="drawer-col-title">
                   <span>🔮 Step 2: Instant 0–1000m Subsurface Thermal Reconstruction</span>
+                </div>
+                <div style="font-size:0.75rem; color:#6FFFE9; margin-bottom: 8px; font-weight:500;">
+                  Standard Depths: (0, 5, 10, 20, 30, 50, 75, 100, 125, 150, 200, 300, 500, 700, 1000) m
                 </div>
 
                 <div class="manual-canvas-box">

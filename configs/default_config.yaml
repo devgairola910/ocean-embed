@@ -23,7 +23,7 @@ data:
     - "wind_v"         # m/s
   num_channels: 7
   lag_days: 5  # T_lag (today + 4 prior days)
-  depth_levels: [0, 10, 20, 30, 50, 75, 100, 125, 150, 200, 250, 300, 400, 600, 1000]
+  depth_levels: [0, 5, 10, 20, 30, 50, 75, 100, 125, 150, 200, 300, 500, 700, 1000]
   num_depths: 15
   split:
     train_years: [2015, 2016, 2017, 2018, 2019, 2020]

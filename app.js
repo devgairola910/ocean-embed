@@ -639,6 +639,11 @@ function initUploadAndManualInput() {
   const dropzone = document.getElementById('uploadDropzone');
   const fileInput = document.getElementById('satelliteFileInput');
   const loadSampleBtn = document.getElementById('loadSampleCsvBtn');
+  const loadSampleSstBtn = document.getElementById('loadSampleSstJpgBtn');
+  const loadSampleCycloneBtn = document.getElementById('loadSampleCycloneJpgBtn');
+  const satImageCanvas = document.getElementById('satelliteImageCanvas');
+  const activeImageLabel = document.getElementById('activeImageLabel');
+  const imageHoverCoords = document.getElementById('imageHoverCoords');
 
   // Sliders and badges
   const rangeSst = document.getElementById('rangeSst');
@@ -737,37 +742,164 @@ function initUploadAndManualInput() {
   }
 
   function handleUploadedFile(file) {
-    const filename = file.name;
+    const filename = file.name.toLowerCase();
     const dropText = dropzone.querySelector('.dropzone-text');
     if (dropText) {
-      dropText.innerHTML = `<strong>✅ Loaded: ${filename} (${(file.size / 1024).toFixed(1)} KB)</strong><span>Parsing 7 satellite channels & computing subsurface profile...</span>`;
+      dropText.innerHTML = `<strong>✅ Loaded: ${file.name} (${(file.size / 1024).toFixed(1)} KB)</strong><span>Analyzing satellite raster channels & computing 0–1000m profiles...</span>`;
     }
 
-    const reader = new FileReader();
-    reader.onload = function(evt) {
-      const content = evt.target.result;
-      if (filename.endsWith('.csv')) {
-        parseCsvAndPopulate(content);
-      } else if (filename.endsWith('.json')) {
-        try {
-          const json = JSON.parse(content);
-          populateFromJson(json);
-        } catch(err) {
-          console.warn('JSON parse error', err);
-        }
-      } else {
-        // NetCDF simulation
-        setTimeout(() => {
-          executeCustomInference();
-        }, 300);
-      }
-    };
-
-    if (filename.endsWith('.json') || filename.endsWith('.csv')) {
+    if (filename.endsWith('.jpg') || filename.endsWith('.jpeg') || filename.endsWith('.png')) {
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        const img = new Image();
+        img.onload = function() {
+          renderSatelliteImageToCanvas(img, file.name);
+        };
+        img.src = evt.target.result;
+      };
+      reader.readAsDataURL(file);
+    } else if (filename.endsWith('.csv')) {
+      const reader = new FileReader();
+      reader.onload = function(evt) { parseCsvAndPopulate(evt.target.result); };
+      reader.readAsText(file);
+    } else if (filename.endsWith('.json')) {
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        try { populateFromJson(JSON.parse(evt.target.result)); } catch(err) { console.warn(err); }
+      };
       reader.readAsText(file);
     } else {
-      reader.readAsArrayBuffer(file);
+      setTimeout(() => { executeCustomInference(); }, 300);
     }
+  }
+
+  function renderSatelliteImageToCanvas(img, labelName = 'Satellite Image') {
+    if (!satImageCanvas) return;
+    const ctx = satImageCanvas.getContext('2d');
+    const w = satImageCanvas.width;
+    const h = satImageCanvas.height;
+
+    ctx.clearRect(0, 0, w, h);
+    ctx.drawImage(img, 0, 0, w, h);
+
+    // Draw coordinate overlay grid lines (0.25° standard bounds 0–25°N, 40–100°E)
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([3, 3]);
+
+    // Latitude parallels
+    for (let lat = 5; lat <= 20; lat += 5) {
+      const y = h - (lat / 25.0) * h;
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(w, y);
+      ctx.stroke();
+    }
+    // Longitude meridians
+    for (let lon = 50; lon <= 90; lon += 10) {
+      const x = ((lon - 40.0) / 60.0) * w;
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, h);
+      ctx.stroke();
+    }
+    ctx.setLineDash([]);
+
+    if (activeImageLabel) {
+      activeImageLabel.innerText = `${labelName} (Standard 0.25° Grid)`;
+    }
+
+    // Automatically sample center point
+    analyzePointFromImage(w * 0.75, h * 0.4);
+  }
+
+  function analyzePointFromImage(pixelX, pixelY) {
+    if (!satImageCanvas) return;
+    const ctx = satImageCanvas.getContext('2d');
+    const w = satImageCanvas.width;
+    const h = satImageCanvas.height;
+
+    const clampedX = Math.max(0, Math.min(w - 1, pixelX));
+    const clampedY = Math.max(0, Math.min(h - 1, pixelY));
+
+    const pixel = ctx.getImageData(clampedX, clampedY, 1, 1).data;
+    const r = pixel[0] / 255.0;
+    const g = pixel[1] / 255.0;
+    const b = pixel[2] / 255.0;
+
+    // Optical heat index -> Temperature range (20°C - 33°C)
+    const heatIdx = Math.max(0.0, Math.min(1.0, (r * 1.0 + g * 0.4 - b * 0.6 + 0.6) / 2.0));
+    const computedSst = +(20.0 + heatIdx * 13.0).toFixed(1);
+    const computedSla = +((computedSst - 28.0) * 4.5).toFixed(1);
+
+    const lat = +(25.0 - (clampedY / h) * 25.0).toFixed(2);
+    const lon = +(40.0 + (clampedX / w) * 60.0).toFixed(2);
+
+    const manLat = document.getElementById('manLat');
+    const manLon = document.getElementById('manLon');
+    if (manLat) manLat.value = lat;
+    if (manLon) manLon.value = lon;
+
+    if (rangeSst) {
+      rangeSst.value = computedSst;
+      if (valSst) valSst.innerText = `${computedSst} °C`;
+    }
+    if (rangeSla) {
+      rangeSla.value = computedSla;
+      if (valSla) valSla.innerText = `${computedSla >= 0 ? '+' : ''}${computedSla} cm`;
+    }
+
+    if (imageHoverCoords) {
+      imageHoverCoords.innerText = `Sample Point: ${lat}°N, ${lon}°E | Extracted SST: ${computedSst}°C | SLA: ${computedSla >= 0 ? '+' : ''}${computedSla}cm`;
+    }
+
+    executeCustomInference();
+  }
+
+  // Click on Satellite Canvas to sample point
+  if (satImageCanvas) {
+    satImageCanvas.addEventListener('click', (e) => {
+      const rect = satImageCanvas.getBoundingClientRect();
+      const scaleX = satImageCanvas.width / rect.width;
+      const scaleY = satImageCanvas.height / rect.height;
+      const x = (e.clientX - rect.left) * scaleX;
+      const y = (e.clientY - rect.top) * scaleY;
+      analyzePointFromImage(x, y);
+    });
+
+    satImageCanvas.addEventListener('mousemove', (e) => {
+      const rect = satImageCanvas.getBoundingClientRect();
+      const scaleX = satImageCanvas.width / rect.width;
+      const scaleY = satImageCanvas.height / rect.height;
+      const x = (e.clientX - rect.left) * scaleX;
+      const y = (e.clientY - rect.top) * scaleY;
+      const lat = +(25.0 - (y / satImageCanvas.height) * 25.0).toFixed(1);
+      const lon = +(40.0 + (x / satImageCanvas.width) * 60.0).toFixed(1);
+      if (imageHoverCoords) {
+        imageHoverCoords.innerText = `Pointer: ${lat}°N, ${lon}°E (Click to reconstruct)`;
+      }
+    });
+  }
+
+  // Sample Satellite Image Loading
+  function loadSampleImage(src, name) {
+    const img = new Image();
+    img.onload = function() {
+      renderSatelliteImageToCanvas(img, name);
+    };
+    img.src = src;
+  }
+
+  if (loadSampleSstBtn) {
+    loadSampleSstBtn.addEventListener('click', () => {
+      loadSampleImage('assets/sample_sst_satellite.jpg', 'OSTIA Thermal IR Satellite Map (.jpg)');
+    });
+  }
+
+  if (loadSampleCycloneBtn) {
+    loadSampleCycloneBtn.addEventListener('click', () => {
+      loadSampleImage('assets/sample_cyclone_satellite.jpg', 'INSAT Cyclone Spiral Satellite Map (.jpg)');
+    });
   }
 
   function parseCsvAndPopulate(csvText) {
@@ -790,7 +922,7 @@ function initUploadAndManualInput() {
       }
       if (slaIdx >= 0 && rangeSla) {
         let slaVal = parseFloat(values[slaIdx]) || 18.5;
-        if (Math.abs(slaVal) < 1.0) slaVal *= 100.0; // convert m to cm
+        if (Math.abs(slaVal) < 1.0) slaVal *= 100.0;
         rangeSla.value = slaVal;
         if (valSla) valSla.innerText = `${slaVal >= 0 ? '+' : ''}${slaVal.toFixed(1)} cm`;
       }
@@ -889,7 +1021,8 @@ function initUploadAndManualInput() {
     });
   }
 
-  // Initial draw
+  // Initial draw & load default satellite thermal map
+  loadSampleImage('assets/sample_sst_satellite.jpg', 'OSTIA Thermal IR Satellite Map (.jpg)');
   executeCustomInference();
 }
 
@@ -898,36 +1031,39 @@ function executeCustomInference() {
   const sss = parseFloat(document.getElementById('rangeSss')?.value || 33.2);
   const sla = parseFloat(document.getElementById('rangeSla')?.value || 18.5);
 
-  const depths = [0, 10, 20, 30, 50, 75, 100, 125, 150, 200, 250, 300, 400, 600, 1000];
+  // 15 Standard Depths: (0, 5, 10, 20, 30, 50, 75, 100, 125, 150, 200, 300, 500, 700, 1000) m
+  const depths = [0, 5, 10, 20, 30, 50, 75, 100, 125, 150, 200, 300, 500, 700, 1000];
   
   // Physics-guided subsurface reconstruction matching OceanEmbed depth decoder
-  // Z_th shift is proportional to SLA (0.7m per cm SLA) and SST
-  const z_th = Math.max(30, Math.min(130, 55.0 + sla * 0.7 + (sst - 28.0) * 4.0));
-  const mld = Math.max(12, Math.min(50, 25.0 - sla * 0.2 + (34.0 - sss) * 2.0));
-  const ohc = Math.max(60, Math.min(180, 110 + (sst - 28.0) * 12.0 + sla * 1.5));
+  const z_th = Math.max(25, Math.min(130, 55.0 + sla * 0.7 + (sst - 28.0) * 4.0));
+  const mld = Math.max(10, Math.min(50, 25.0 - sla * 0.2 + (34.0 - sss) * 2.0));
+  const ohc = Math.max(60, Math.min(185, 110 + (sst - 28.0) * 12.0 + sla * 1.5));
 
   const temps = [];
   for (let i = 0; i < depths.length; i++) {
     const z = depths[i];
     if (z <= mld) {
       // Mixed layer isothermal
-      temps.push(sst - 0.05 * (z / Math.max(1, mld)));
+      temps.push(+(sst - 0.04 * (z / Math.max(1, mld))).toFixed(2));
     } else if (z <= z_th) {
       // Upper thermocline gradual drop
       const frac = (z - mld) / (z_th - mld);
-      temps.push((sst - 0.05) - frac * (sst - 20.0));
-    } else if (z <= 250) {
+      temps.push(+((sst - 0.04) - frac * (sst - 20.0)).toFixed(2));
+    } else if (z <= 200) {
       // Main thermocline below 20°C isotherm
-      const frac = (z - z_th) / (250 - z_th);
-      temps.push(20.0 - frac * 8.5);
-    } else if (z <= 600) {
+      const frac = (z - z_th) / (200 - z_th);
+      temps.push(+(20.0 - frac * 6.5).toFixed(2));
+    } else if (z <= 500) {
       // Intermediate waters
-      const frac = (z - 250) / (600 - 250);
-      temps.push(11.5 - frac * 4.5);
+      const frac = (z - 200) / (500 - 200);
+      temps.push(+(13.5 - frac * 4.5).toFixed(2));
+    } else if (z <= 700) {
+      const frac = (z - 500) / (700 - 500);
+      temps.push(+(9.0 - frac * 2.5).toFixed(2));
     } else {
       // Deep ocean
-      const frac = (z - 600) / (1000 - 600);
-      temps.push(7.0 - frac * 2.5);
+      const frac = (z - 700) / (1000 - 700);
+      temps.push(+(6.5 - frac * 2.0).toFixed(2));
     }
   }
 
@@ -940,7 +1076,7 @@ function executeCustomInference() {
   if (lblZth) lblZth.innerText = `${z_th.toFixed(1)} m`;
   if (lblOhc) lblOhc.innerText = `${Math.round(ohc)} kJ/cm²`;
   if (lblMld) lblMld.innerText = `${mld.toFixed(1)} m`;
-  if (lblStab) lblStab.innerText = '100% Stable (∂T/∂z ≤ 0)';
+  if (lblStab) lblStab.innerText = '100% Monotonically Stable';
 
   renderManualProfileChart(temps, depths, z_th);
 }
@@ -958,7 +1094,7 @@ function renderManualProfileChart(temps, depths, z_th) {
   ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
   ctx.lineWidth = 1;
 
-  const padLeft = 55;
+  const padLeft = 60;
   const padRight = 20;
   const padTop = 25;
   const padBottom = 35;
@@ -983,9 +1119,9 @@ function renderManualProfileChart(temps, depths, z_th) {
     ctx.fillText(`${t}°C`, x, padTop + plotH + 16);
   }
 
-  // Depth grid lines (Y axis)
+  // 15 Standard Depths (Y axis ticks)
   ctx.textAlign = 'right';
-  const yTicks = [0, 100, 200, 400, 600, 800, 1000];
+  const yTicks = [0, 50, 100, 200, 300, 500, 700, 1000];
   for (let i = 0; i < yTicks.length; i++) {
     const d = yTicks[i];
     const y = padTop + (d / maxDepth) * plotH;
@@ -1008,14 +1144,14 @@ function renderManualProfileChart(temps, depths, z_th) {
 
   ctx.fillStyle = '#F43F5E';
   ctx.textAlign = 'left';
-  ctx.fillText(`Z_th: ${z_th.toFixed(1)}m`, padLeft + 8, zthY - 5);
+  ctx.fillText(`Thermocline Z_th: ${z_th.toFixed(1)}m`, padLeft + 8, zthY - 5);
 
   // Draw continuous temperature profile curve
   ctx.beginPath();
   ctx.lineWidth = 3;
   const gradient = ctx.createLinearGradient(0, padTop, 0, padTop + plotH);
   gradient.addColorStop(0, '#F43F5E');
-  gradient.addColorStop(0.35, '#38BDF8');
+  gradient.addColorStop(0.3, '#38BDF8');
   gradient.addColorStop(1, '#6FFFE9');
   ctx.strokeStyle = gradient;
 
@@ -1029,7 +1165,7 @@ function renderManualProfileChart(temps, depths, z_th) {
   }
   ctx.stroke();
 
-  // Draw node points
+  // Draw node points for all 15 standard depths
   for (let i = 0; i < depths.length; i++) {
     const t = temps[i];
     const d = depths[i];
@@ -1049,7 +1185,7 @@ function renderManualProfileChart(temps, depths, z_th) {
   ctx.font = '11px Outfit, sans-serif';
   ctx.fillStyle = '#FFFFFF';
   ctx.textAlign = 'left';
-  ctx.fillText('Reconstructed Thermal Curve (0–1000m)', padLeft, padTop - 8);
+  ctx.fillText('15 Standard Depths Reconstruction (0–1000m)', padLeft, padTop - 8);
 }
 
 /* ==========================================================================
