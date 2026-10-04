@@ -603,8 +603,36 @@ function initExportModal() {
 /* ==========================================================================
    8. UPLOAD & MANUAL DATA INGESTION CONTROLLER
    ========================================================================== */
+function openUploadSection() {
+  const uploadTabBtn = document.querySelector('.d-tab-btn[data-dtab="tab-upload"]');
+  const tabBtns = document.querySelectorAll('.d-tab-btn');
+  const tabPanes = document.querySelectorAll('.drawer-tab-pane');
+  const drawer = document.getElementById('deepDiveDrawer');
+  const targetPane = document.getElementById('pane-tab-upload');
+
+  if (tabBtns && tabPanes) {
+    tabBtns.forEach(b => b.classList.remove('active'));
+    tabPanes.forEach(p => p.classList.remove('active'));
+  }
+  if (uploadTabBtn) uploadTabBtn.classList.add('active');
+  if (targetPane) targetPane.classList.add('active');
+
+  if (drawer) {
+    drawer.classList.add('open');
+    setTimeout(() => {
+      drawer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      executeCustomInference();
+    }, 60);
+  }
+
+  const uploadModal = document.getElementById('uploadModal');
+  if (uploadModal) uploadModal.classList.remove('open');
+}
+
 function initUploadAndManualInput() {
   const openModalBtn = document.getElementById('openUploadModalBtn');
+  const heroUploadBtn = document.getElementById('heroUploadBtn');
+  const dashboardUploadBtn = document.getElementById('dashboardUploadBtn');
   const uploadModal = document.getElementById('uploadModal');
   const closeUploadBtn = document.getElementById('closeUploadModal');
   const goToUploadTabBtn = document.getElementById('goToUploadTabBtn');
@@ -631,24 +659,21 @@ function initUploadAndManualInput() {
   const btnReset = document.getElementById('btnResetForm');
   const scenarioPills = document.querySelectorAll('.preset-pill');
 
-  // Modal open/close
-  if (openModalBtn && uploadModal) {
-    openModalBtn.addEventListener('click', () => uploadModal.classList.add('open'));
+  // Direct open handlers for all devices
+  if (openModalBtn) {
+    openModalBtn.addEventListener('click', (e) => { e.preventDefault(); openUploadSection(); });
+  }
+  if (heroUploadBtn) {
+    heroUploadBtn.addEventListener('click', (e) => { e.preventDefault(); openUploadSection(); });
+  }
+  if (dashboardUploadBtn) {
+    dashboardUploadBtn.addEventListener('click', (e) => { e.preventDefault(); openUploadSection(); });
+  }
+  if (goToUploadTabBtn) {
+    goToUploadTabBtn.addEventListener('click', (e) => { e.preventDefault(); openUploadSection(); });
   }
   if (closeUploadBtn && uploadModal) {
     closeUploadBtn.addEventListener('click', () => uploadModal.classList.remove('open'));
-  }
-  if (goToUploadTabBtn) {
-    goToUploadTabBtn.addEventListener('click', () => {
-      if (uploadModal) uploadModal.classList.remove('open');
-      const uploadTabBtn = document.querySelector('.d-tab-btn[data-dtab="tab-upload"]');
-      if (uploadTabBtn) uploadTabBtn.click();
-      const drawer = document.getElementById('deepDiveDrawer');
-      if (drawer) {
-        drawer.classList.add('open');
-        drawer.scrollIntoView({ behavior: 'smooth' });
-      }
-    });
   }
 
   // Sliders real-time values

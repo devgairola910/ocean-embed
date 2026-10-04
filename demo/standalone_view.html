@@ -1393,15 +1393,19 @@ html, body {
 .modal-overlay {
   position: fixed;
   inset: 0;
-  z-index: 1000;
-  background: rgba(3, 13, 26, 0.8);
-  backdrop-filter: blur(12px);
+  z-index: 999999;
+  background: rgba(3, 13, 26, 0.88);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
   display: flex;
   align-items: center;
   justify-content: center;
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.3s ease;
+  padding: 16px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .modal-overlay.open {
@@ -1410,32 +1414,46 @@ html, body {
 }
 
 .modal-glass-card {
-  width: 90%;
-  max-width: 440px;
-  background: rgba(14, 42, 77, 0.95);
+  width: 94%;
+  max-width: 460px;
+  max-height: 90vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  background: rgba(14, 42, 77, 0.96);
   border: 1.5px solid var(--glass-border-light);
   border-radius: 24px;
-  padding: 32px;
-  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.7);
+  padding: 28px 24px;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.75);
   position: relative;
+  margin: auto;
 }
 
 .modal-large {
-  max-width: 760px;
+  max-width: 780px;
 }
 
 .modal-close {
   position: absolute;
-  top: 18px;
-  right: 20px;
-  background: none;
-  border: none;
-  color: rgba(255, 255, 255, 0.6);
-  font-size: 1.8rem;
+  top: 16px;
+  right: 18px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 1.4rem;
+  line-height: 1;
   cursor: pointer;
+  z-index: 10;
+  transition: var(--transition-smooth);
 }
 
 .modal-close:hover {
+  background: rgba(255, 255, 255, 0.25);
   color: #FFFFFF;
 }
 
@@ -1776,20 +1794,85 @@ html, body {
   .drawer-grid { grid-template-columns: 1fr; }
   .upload-suite-grid { grid-template-columns: 1fr; }
   .sat-grid-6 { grid-template-columns: 1fr 1fr; }
+  .drawer-tab-nav { overflow-x: auto; flex-wrap: nowrap; -webkit-overflow-scrolling: touch; }
 }
 
 @media (max-width: 768px) {
-  .app-viewport { padding: 10px; }
-  .window-frame { border-radius: 20px; }
-  .top-nav { padding: 16px 20px; }
-  .nav-center { display: none; }
-  .title-text { font-size: 3rem; }
+  .app-viewport { padding: 6px; }
+  .window-frame { border-radius: 16px; }
+  .top-nav {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    padding: 14px 16px;
+  }
+  .nav-left {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .nav-center {
+    display: flex;
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 2px;
+  }
+  .nav-center::-webkit-scrollbar {
+    display: none;
+  }
+  .nav-links {
+    display: flex;
+    gap: 6px;
+    width: max-content;
+  }
+  .nav-link {
+    font-size: 0.78rem;
+    padding: 6px 12px;
+    white-space: nowrap;
+  }
+  .nav-right {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .pill-btn {
+    font-size: 0.75rem;
+    padding: 6px 12px;
+  }
+  .title-text { font-size: 2.8rem; }
+  .hero-subtitle { font-size: 0.85rem; letter-spacing: 0.15em; }
   .metrics-cards-row { grid-template-columns: 1fr; }
   .analytics-subrow { grid-template-columns: 1fr; }
   .sat-grid-6 { grid-template-columns: 1fr; }
   .arch-grid { grid-template-columns: 1fr; }
   .upload-suite-grid { grid-template-columns: 1fr; }
   .form-row-coords { grid-template-columns: 1fr; }
+  .computed-kpis-grid { grid-template-columns: 1fr; }
+  .drawer-tab-nav {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+    padding: 4px;
+  }
+  .d-tab-btn {
+    white-space: nowrap;
+    font-size: 0.78rem;
+    padding: 6px 12px;
+  }
+  .manual-canvas-box canvas {
+    max-width: 100%;
+    height: auto;
+  }
+}
+
+@media (max-width: 480px) {
+  .title-text { font-size: 2.2rem; }
+  .hero-clownfish-img { width: 140px; }
+  .top-nav { padding: 10px 12px; }
+  .modal-glass-card { padding: 20px 16px; border-radius: 18px; }
 }
 </style>
 </head>
@@ -1875,13 +1958,16 @@ html, body {
           <p class="hero-subtitle" id="heroSubtitle">SEE THROUGH THE OCEAN USING ONLY SATELLITE SURFACE DATA</p>
 
           <!-- CTA Pill Button -->
-          <div class="hero-cta-wrapper">
+          <div class="hero-cta-wrapper" style="display:flex; justify-content:center; gap:12px; flex-wrap:wrap;">
             <button class="glass-pill-btn cta-btn" id="viewDashboardBtn">
               <span>View Subsurface Intelligence</span>
               <svg class="cta-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                 <line x1="12" y1="5" x2="12" y2="19"></line>
                 <polyline points="19 12 12 19 5 12"></polyline>
               </svg>
+            </button>
+            <button class="glass-pill-btn cta-upload-btn" id="heroUploadBtn" style="background:rgba(56,189,248,0.22); border-color:rgba(56,189,248,0.5); color:#38BDF8;">
+              <span>🛰️ Upload & Manual Entry</span>
             </button>
           </div>
         </div>
@@ -1897,9 +1983,12 @@ html, body {
                   <h2 class="section-title" id="analyticsTitle">Today's Ocean Intelligence</h2>
                   <p class="section-subtext" id="analyticsSubtext">Physics-constrained 3D temperature reconstruction (0–1000m) from multi-channel satellites.</p>
                 </div>
-                <div class="live-indicator">
-                  <span class="pulse-dot"></span>
-                  <span class="indicator-text" id="liveStatusText">Target: 15.0°N, 88.0°E</span>
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <button class="pill-btn upload-quick-btn" id="dashboardUploadBtn" style="font-size:0.75rem; padding:4px 10px; background:rgba(56,189,248,0.18); border:1px solid rgba(56,189,248,0.45); color:#38BDF8; cursor:pointer;">📤 Upload / Custom Input</button>
+                  <div class="live-indicator">
+                    <span class="pulse-dot"></span>
+                    <span class="indicator-text" id="liveStatusText">Target: 15.0°N, 88.0°E</span>
+                  </div>
                 </div>
               </div>
 
@@ -3284,8 +3373,36 @@ function initExportModal() {
 /* ==========================================================================
    8. UPLOAD & MANUAL DATA INGESTION CONTROLLER
    ========================================================================== */
+function openUploadSection() {
+  const uploadTabBtn = document.querySelector('.d-tab-btn[data-dtab="tab-upload"]');
+  const tabBtns = document.querySelectorAll('.d-tab-btn');
+  const tabPanes = document.querySelectorAll('.drawer-tab-pane');
+  const drawer = document.getElementById('deepDiveDrawer');
+  const targetPane = document.getElementById('pane-tab-upload');
+
+  if (tabBtns && tabPanes) {
+    tabBtns.forEach(b => b.classList.remove('active'));
+    tabPanes.forEach(p => p.classList.remove('active'));
+  }
+  if (uploadTabBtn) uploadTabBtn.classList.add('active');
+  if (targetPane) targetPane.classList.add('active');
+
+  if (drawer) {
+    drawer.classList.add('open');
+    setTimeout(() => {
+      drawer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      executeCustomInference();
+    }, 60);
+  }
+
+  const uploadModal = document.getElementById('uploadModal');
+  if (uploadModal) uploadModal.classList.remove('open');
+}
+
 function initUploadAndManualInput() {
   const openModalBtn = document.getElementById('openUploadModalBtn');
+  const heroUploadBtn = document.getElementById('heroUploadBtn');
+  const dashboardUploadBtn = document.getElementById('dashboardUploadBtn');
   const uploadModal = document.getElementById('uploadModal');
   const closeUploadBtn = document.getElementById('closeUploadModal');
   const goToUploadTabBtn = document.getElementById('goToUploadTabBtn');
@@ -3312,24 +3429,21 @@ function initUploadAndManualInput() {
   const btnReset = document.getElementById('btnResetForm');
   const scenarioPills = document.querySelectorAll('.preset-pill');
 
-  // Modal open/close
-  if (openModalBtn && uploadModal) {
-    openModalBtn.addEventListener('click', () => uploadModal.classList.add('open'));
+  // Direct open handlers for all devices
+  if (openModalBtn) {
+    openModalBtn.addEventListener('click', (e) => { e.preventDefault(); openUploadSection(); });
+  }
+  if (heroUploadBtn) {
+    heroUploadBtn.addEventListener('click', (e) => { e.preventDefault(); openUploadSection(); });
+  }
+  if (dashboardUploadBtn) {
+    dashboardUploadBtn.addEventListener('click', (e) => { e.preventDefault(); openUploadSection(); });
+  }
+  if (goToUploadTabBtn) {
+    goToUploadTabBtn.addEventListener('click', (e) => { e.preventDefault(); openUploadSection(); });
   }
   if (closeUploadBtn && uploadModal) {
     closeUploadBtn.addEventListener('click', () => uploadModal.classList.remove('open'));
-  }
-  if (goToUploadTabBtn) {
-    goToUploadTabBtn.addEventListener('click', () => {
-      if (uploadModal) uploadModal.classList.remove('open');
-      const uploadTabBtn = document.querySelector('.d-tab-btn[data-dtab="tab-upload"]');
-      if (uploadTabBtn) uploadTabBtn.click();
-      const drawer = document.getElementById('deepDiveDrawer');
-      if (drawer) {
-        drawer.classList.add('open');
-        drawer.scrollIntoView({ behavior: 'smooth' });
-      }
-    });
   }
 
   // Sliders real-time values

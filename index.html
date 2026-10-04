@@ -92,13 +92,16 @@
           <p class="hero-subtitle" id="heroSubtitle">SEE THROUGH THE OCEAN USING ONLY SATELLITE SURFACE DATA</p>
 
           <!-- CTA Pill Button -->
-          <div class="hero-cta-wrapper">
+          <div class="hero-cta-wrapper" style="display:flex; justify-content:center; gap:12px; flex-wrap:wrap;">
             <button class="glass-pill-btn cta-btn" id="viewDashboardBtn">
               <span>View Subsurface Intelligence</span>
               <svg class="cta-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                 <line x1="12" y1="5" x2="12" y2="19"></line>
                 <polyline points="19 12 12 19 5 12"></polyline>
               </svg>
+            </button>
+            <button class="glass-pill-btn cta-upload-btn" id="heroUploadBtn" style="background:rgba(56,189,248,0.22); border-color:rgba(56,189,248,0.5); color:#38BDF8;">
+              <span>🛰️ Upload & Manual Entry</span>
             </button>
           </div>
         </div>
@@ -114,9 +117,12 @@
                   <h2 class="section-title" id="analyticsTitle">Today's Ocean Intelligence</h2>
                   <p class="section-subtext" id="analyticsSubtext">Physics-constrained 3D temperature reconstruction (0–1000m) from multi-channel satellites.</p>
                 </div>
-                <div class="live-indicator">
-                  <span class="pulse-dot"></span>
-                  <span class="indicator-text" id="liveStatusText">Target: 15.0°N, 88.0°E</span>
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <button class="pill-btn upload-quick-btn" id="dashboardUploadBtn" style="font-size:0.75rem; padding:4px 10px; background:rgba(56,189,248,0.18); border:1px solid rgba(56,189,248,0.45); color:#38BDF8; cursor:pointer;">📤 Upload / Custom Input</button>
+                  <div class="live-indicator">
+                    <span class="pulse-dot"></span>
+                    <span class="indicator-text" id="liveStatusText">Target: 15.0°N, 88.0°E</span>
+                  </div>
                 </div>
               </div>
 

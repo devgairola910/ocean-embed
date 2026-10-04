@@ -91,7 +91,7 @@ standalone_html_path = os.path.join(os.path.dirname(__file__), "standalone_view.
 if os.path.exists(standalone_html_path):
     with open(standalone_html_path, "r", encoding="utf-8") as f:
         standalone_html = f.read()
-    st.components.v1.html(standalone_html, height=1050, scrolling=True)
+    st.components.v1.html(standalone_html, height=1450, scrolling=True)
 
 @st.cache_resource
 def get_data_provider():
